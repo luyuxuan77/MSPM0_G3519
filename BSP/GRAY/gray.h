@@ -8,12 +8,12 @@
 #define gw_gray_ad1(x) ((x) ? DL_GPIO_setPins(gw_ad_PORT, gw_ad_D1_PIN) : DL_GPIO_clearPins(gw_ad_PORT, gw_ad_D1_PIN))
 #define gw_gray_ad2(x) ((x) ? DL_GPIO_setPins(gw_ad_PORT, gw_ad_D2_PIN) : DL_GPIO_clearPins(gw_ad_PORT, gw_ad_D2_PIN)) 
 
-void get_gray_refresh_data(void);
-int get_gray_offset(void);
+int get_gray_refresh_data(void);  // é‡‡é›†8è·¯ç°åº¦ + è®¡ç®—åç§»é‡ + LCDæ˜¾ç¤º (merged)
+// int get_gray_offset(void);      // å·²åˆå¹¶åˆ° get_gray_refresh_data
 
 uint8_t get_offset_s(void);
 
-uint16_t get_adc0_value();//²É¼¯VCCÊäÈëµçÑ¹£¬¼´XT30½Ó¿ÚÊäÈëµçÑ¹
+uint16_t get_adc0_value();//ï¿½É¼ï¿½VCCï¿½ï¿½ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½ï¿½ï¿½XT30ï¿½Ó¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¹
 /**************************************************************************************************************/
 
 

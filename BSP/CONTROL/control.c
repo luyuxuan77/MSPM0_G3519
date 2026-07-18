@@ -1,20 +1,20 @@
 #include "control.h"
 #include "SPI0_LCD/lcd.h"
 
-//¶¨Òå»Ò¶È´«¸ĞÆ÷µÄpid²ÎÊı½á¹¹Ìå±äÁ¿ºÍp£¬i£¬dÈıÖµ½á¹¹Ìå±äÁ¿Êı×é
+//ï¿½ï¿½ï¿½ï¿½Ò¶È´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½pidï¿½ï¿½ï¿½ï¿½ï¿½á¹¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½pï¿½ï¿½iï¿½ï¿½dï¿½ï¿½Öµï¿½á¹¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 PID_TypeDef Grayscale_Pid;
-p_i_d_Value_TypeDef PID_Value_Grayscale[3] = {{  0.0, 0, 0 },	//Ô¤´æÈı×épid²ÎÊı£¬ÓÃÓÚ²»Í¬µÄÑ²ÏßËÙ¶È£»
+p_i_d_Value_TypeDef PID_Value_Grayscale[3] = {{  0.0, 0, 0 },	//Ô¤ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½pidï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú²ï¿½Í¬ï¿½ï¿½Ñ²ï¿½ï¿½ï¿½Ù¶È£ï¿½
 											  { 0.0, 0.0, 0.0 },
 											  { 55.0, 0.0, 10.0 }};
 //p_i_d_Value_TypeDef PID_Value_Grayscale[3] = {
-//    { 8.0f,  0.0f,  2.0f },   // µÍËÙ£¨ÎÈ£©
-//    { 6.0f,  0.0f,  1.5f },   // ÖĞËÙ
-//    { 5.0f,  0.0f,  1.0f }    // ¸ßËÙ
+//    { 8.0f,  0.0f,  2.0f },   // ï¿½ï¿½ï¿½Ù£ï¿½ï¿½È£ï¿½
+//    { 6.0f,  0.0f,  1.5f },   // ï¿½ï¿½ï¿½ï¿½
+//    { 5.0f,  0.0f,  1.0f }    // ï¿½ï¿½ï¿½ï¿½
 //};
 											  
-//¶¨Òå»Ò¶È ´«¸ĞÆ÷·½Ïò»·pid²ÎÊı½á¹¹Ìå±äÁ¿ºÍp£¬i£¬dÈıÖµ½á¹¹Ìå±äÁ¿Êı×é
+//ï¿½ï¿½ï¿½ï¿½Ò¶ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½pidï¿½ï¿½ï¿½ï¿½ï¿½á¹¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½pï¿½ï¿½iï¿½ï¿½dï¿½ï¿½Öµï¿½á¹¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 PID_TypeDef Grayscale_Direction_Pid;
-p_i_d_Value_TypeDef PID_Value_Grayscale_Direction[3] = {{ 15, 0, 4 },	//Ô¤´æÈı×épid²ÎÊı£¬ÓÃÓÚ²»Í¬µÄÑ²ÏßËÙ¶È£»
+p_i_d_Value_TypeDef PID_Value_Grayscale_Direction[3] = {{ 15, 0, 4 },	//Ô¤ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½pidï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú²ï¿½Í¬ï¿½ï¿½Ñ²ï¿½ï¿½ï¿½Ù¶È£ï¿½
 														{ 0.0, 0.0, 0.0 },
 														{ 0.0, 0.0, 0.0 }};
 
@@ -27,7 +27,7 @@ static uint8_t turn_cnt = 0;
 int gw_offset=0;
 void Track_Direction_Control(int speed)  
 {
-    gw_offset = get_gray_offset();
+    gw_offset = get_gray_refresh_data();
 	
 	Pid_control(&Grayscale_Direction_Pid,gw_offset, 0);
 	Pid_OutLimit(&Grayscale_Direction_Pid, 100);
@@ -126,30 +126,30 @@ int Turn_Right(float speed)
 
 int road_tell()
 {
-   get_gray_offset();
+   get_gray_refresh_data();
     u8 data = get_offset_s();
 
-    if (data == 0) // ¿Õ°×
+    if (data == 0) // ï¿½Õ°ï¿½
     {
         return 1;
     }
 
-    // ===== Í³¼Æ×óÓÒµÆÊıÁ¿ =====
+    // ===== Í³ï¿½ï¿½ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½ï¿½ï¿½ =====
     int left_count = ((data >> 4) & 1) + ((data >> 5) & 1) + ((data >> 6) & 1) + ((data >> 7) & 1);
     int right_count = ((data >> 0) & 1) + ((data >> 1) & 1) + ((data >> 2) & 1) + ((data >> 3) & 1);
 
-    // ===== T¿ÚÅĞ¶Ï£¨¡İ3¸öµÆÁÁ£©=====
+    // ===== Tï¿½ï¿½ï¿½Ğ¶Ï£ï¿½ï¿½ï¿½3ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½=====
     if (left_count >= 3 && right_count < 3)
     {
-        return 2; // ×óT 
+        return 2; // ï¿½ï¿½T 
     }
 
     if (right_count >= 3 && left_count < 3)
     {
-        return 3; // ÓÒT
+        return 3; // ï¿½ï¿½T
     }
 
-    // ===== Ê®×Ö£¨Á½±ß¶¼¶à£©=====
+    // ===== Ê®ï¿½Ö£ï¿½ï¿½ï¿½ï¿½ß¶ï¿½ï¿½à£©=====
     if (left_count >= 3 && right_count >= 3)
     {
         return 4;

@@ -30,13 +30,13 @@ uint16_t get_adc0_value()
 void ADC_gray_INST_IRQHandler(void)
 {
 //	printf("1");
-    //²éÑ¯²¢Çå³ýADCÖÐ¶Ï
+    //ï¿½ï¿½Ñ¯ï¿½ï¿½ï¿½ï¿½ï¿½ADCï¿½Ð¶ï¿½
     switch (DL_ADC12_getPendingInterrupt(ADC_gray_INST))
     {
 
         case DL_ADC12_IIDX_MEM0_RESULT_LOADED:
 
-            gCheckADC = true;//½«±êÖ¾Î»ÖÃ1
+            gCheckADC = true;//ï¿½ï¿½ï¿½ï¿½Ö¾Î»ï¿½ï¿½1
             break;
         default:
             break;
@@ -45,7 +45,8 @@ void ADC_gray_INST_IRQHandler(void)
 
 
 uint16_t gray_now_val[8]={0};
-void get_gray_refresh_data(void)
+uint8_t offset_s=0;
+int get_gray_refresh_data(void)
 {
 
     uint8_t num=1; 
@@ -65,49 +66,74 @@ void get_gray_refresh_data(void)
         gray_now_val[num-1]=get_adc0_value();
 
     }
-//    // LCDÏÔÊ¾8Â·»Ò¶ÈÖµ
-//    LCD_ShowIntNum(0, 40, gray_now_val[7], 4, BLACK, WHITE, 16);
-//    LCD_ShowIntNum(60,40, gray_now_val[3], 4, BLACK, WHITE, 16);
-//    LCD_ShowIntNum(120,40,gray_now_val[5], 4, BLACK, WHITE, 16);
-//    LCD_ShowIntNum(180,40,gray_now_val[1], 4, BLACK, WHITE, 16);
+	// === offset calc & LCD display (merged from get_gray_offset) ===
+	offset_s = 0;
+	int goffset = 0;
+	if (gray_now_val[0] < 1000) goffset += 7, offset_s |= 1 << 7;
+	if (gray_now_val[4] < 1000) goffset += 5, offset_s |= 1 << 6;
+	if (gray_now_val[2] < 1000) goffset += 3, offset_s |= 1 << 5;
+	if (gray_now_val[6] < 1000) goffset += 1, offset_s |= 1 << 4;
+	if (gray_now_val[1] < 1000) goffset -= 1, offset_s |= 1 << 3;
+	if (gray_now_val[5] < 1000) goffset -= 3, offset_s |= 1 << 2;
+	if (gray_now_val[3] < 1000) goffset -= 5, offset_s |= 1 << 1;
+	if (gray_now_val[7] < 1000) goffset -= 7, offset_s |= 1 << 0;
 
-//    LCD_ShowIntNum(0, 60, gray_now_val[6], 4, BLACK, WHITE, 16);
-//    LCD_ShowIntNum(60,60,gray_now_val[2], 4, BLACK, WHITE, 16);
-//    LCD_ShowIntNum(120,60,gray_now_val[4], 4, BLACK, WHITE, 16);
-//    LCD_ShowIntNum(180,60,gray_now_val[0], 4, BLACK, WHITE, 16);
+	// LCD: squares(y=8) + values(y=20), physical order [0][4][2][6]|[1][5][3][7]
+	// threshold=1000: below -> RED(detected), above -> BLACK
+	LCD_Fill(0,   8, 23, 17, (gray_now_val[7] < 1000) ? RED : BLACK);
+	LCD_Fill(36,  8, 59, 17, (gray_now_val[3] < 1000) ? RED : BLACK);
+	LCD_Fill(72,  8, 95, 17, (gray_now_val[5] < 1000) ? RED : BLACK);
+	LCD_Fill(108, 8, 131,17, (gray_now_val[1] < 1000) ? RED : BLACK);
+	LCD_Fill(144, 8, 167,17, (gray_now_val[6] < 1000) ? RED : BLACK);
+	LCD_Fill(180, 8, 203,17, (gray_now_val[2] < 1000) ? RED : BLACK);
+	LCD_Fill(216, 8, 239,17, (gray_now_val[4] < 1000) ? RED : BLACK);
+	LCD_Fill(252, 8, 275,17, (gray_now_val[0] < 1000) ? RED : BLACK);
+
+	LCD_ShowIntNum(0,  20, gray_now_val[7], 4, BLACK, WHITE, 12);
+	LCD_ShowIntNum(36, 20, gray_now_val[3], 4, BLACK, WHITE, 12);
+	LCD_ShowIntNum(72, 20, gray_now_val[5], 4, BLACK, WHITE, 12);
+	LCD_ShowIntNum(108,20, gray_now_val[1], 4, BLACK, WHITE, 12);
+	LCD_ShowIntNum(144,20, gray_now_val[6], 4, BLACK, WHITE, 12);
+	LCD_ShowIntNum(180,20, gray_now_val[2], 4, BLACK, WHITE, 12);
+	LCD_ShowIntNum(216,20, gray_now_val[4], 4, BLACK, WHITE, 12);
+	LCD_ShowIntNum(252,20, gray_now_val[0], 4, BLACK, WHITE, 12);
+
+	return goffset;
 //	printf("%d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t \r\n",
 //	gray_now_val[0],gray_now_val[4],gray_now_val[2],gray_now_val[6],gray_now_val[1],gray_now_val[5],gray_now_val[3],gray_now_val[7]);
 }
 
 #define grat_black   1300
-uint8_t offset_s=0;
-int get_gray_offset(void)
-{
-    int goffset=0;
-    offset_s=0;
-    get_gray_refresh_data();
-    if (gray_now_val[0]<1000) 
-        goffset+=7,offset_s|=1<<7;
-    if (gray_now_val[4]<1000) 
-        goffset+=5,offset_s|=1<<6;
-    if (gray_now_val[2]<1000) 
-        goffset+=3,offset_s|=1<<5;
-    if (gray_now_val[6]<1000) 
-        goffset+=1,offset_s|=1<<4;
+/* === merged into get_gray_refresh_data ===
+//int get_gray_offset(void)
+//{
+//    int goffset=0;
+//    offset_s=0;
+//    get_gray_refresh_data();
+//    if (gray_now_val[0]<1000) 
+//        goffset+=7,offset_s|=1<<7;
+//    if (gray_now_val[4]<1000) 
+//        goffset+=5,offset_s|=1<<6;
+//    if (gray_now_val[2]<1000) 
+//        goffset+=3,offset_s|=1<<5;
+//    if (gray_now_val[6]<1000) 
+//        goffset+=1,offset_s|=1<<4;
+//
+//    if (gray_now_val[1]<1000) 
+//        goffset-=1,offset_s|=1<<3;
+//    if (gray_now_val[5]<1000) 
+//        goffset-=3,offset_s|=1<<2;
+//    if (gray_now_val[3]<1000) 
+//        goffset-=5,offset_s|=1<<1;
+//     if (gray_now_val[7]<1000) 
+//         goffset-=7,offset_s|=1<<0;
+////    printf("goffset=%d\r\n",offset_s);
+//	 // LCDï¿½ï¿½Ê¾offset_s
+////    LCD_ShowIntNum(100,20,offset_s,5,BLACK,WHITE,16);
+//    return goffset;
+//}
+*/
 
-    if (gray_now_val[1]<1000) 
-        goffset-=1,offset_s|=1<<3;
-    if (gray_now_val[5]<1000) 
-        goffset-=3,offset_s|=1<<2;
-    if (gray_now_val[3]<1000) 
-        goffset-=5,offset_s|=1<<1;
-     if (gray_now_val[7]<1000) 
-         goffset-=7,offset_s|=1<<0;
-//    printf("goffset=%d\r\n",offset_s);
-	 // LCDÏÔÊ¾offset_s
-//    LCD_ShowIntNum(100,20,offset_s,5,BLACK,WHITE,16);
-    return goffset;
-}
 
 uint8_t get_offset_s(void)
 
