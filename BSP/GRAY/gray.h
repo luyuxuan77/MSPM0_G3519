@@ -13,7 +13,7 @@ int get_gray_refresh_data(void);  // 采集8路灰度 + 计算偏移量 + LCD显
 
 uint8_t get_offset_s(void);
 
-uint16_t get_adc0_value();//�ɼ�VCC�����ѹ����XT30�ӿ������ѹ
+uint16_t get_adc0_value();  // ADC read VCC voltage at XT30 connector
 /**************************************************************************************************************/
 
 

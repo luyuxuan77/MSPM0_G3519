@@ -86,7 +86,7 @@ int main(void)
 		/* ---- Gray sensor data collection every 10ms ---- */
 		if (system_time_elapsed_ms(&gray, 10))
 		{
-			get_gray_refresh_data();
+			Track_Direction_Control(200);
 		}
 
 //        /* ---- 5.4 INS task every 10ms ---- */

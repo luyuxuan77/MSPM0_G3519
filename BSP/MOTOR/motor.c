@@ -421,10 +421,10 @@ void motor_control_update(void)
 //	pwm1,
 //	pwm2);
 
-	printf("%d,%d,%d\r\n",
-	(int)Speed_Pid[0].SetPoint,
-	speed_M1,
-	speed_M2);
+//	printf("%d,%d,%d\r\n",
+//	(int)Speed_Pid[0].SetPoint,
+//	speed_M1,
+//	speed_M2);
 }
 
 /**
