@@ -18,6 +18,7 @@ static uint32_t gw_tick = 0;
 static uint32_t pid_speed = 0;
 static uint32_t motor = 0;
 static uint32_t gray = 0;
+static uint32_t speed_tick = 0;
 
 /* ---------- Global variables ---------- */
 float ypr[3];
@@ -83,10 +84,18 @@ int main(void)
             Pid_Speed();
         }
 
+//		/* ---- Motor speed read every 128ms ---- */
+//		if (system_time_elapsed_ms(&speed_tick, 128))
+//		{
+//			float left_speed  = get_motor_speed_cm_s(0);
+//			float right_speed = get_motor_speed_cm_s(1);
+//			printf("L:%.1f R:%.1f cm/s\r\n", left_speed, right_speed);
+//		}
+		
 		/* ---- Gray sensor data collection every 10ms ---- */
 		if (system_time_elapsed_ms(&gray, 10))
 		{
-			Track_Direction_Control(200);
+			Track_Direction_Control(50);  // 40 cm/s
 		}
 
 //        /* ---- 5.4 INS task every 10ms ---- */

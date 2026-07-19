@@ -2,8 +2,8 @@
 #include "SPI0_LCD/lcd.h"
 
 // ===== Direct-error steering config =====
-#define TRACK_ERROR_GAIN     3.4f   // steering gain factor
-#define TRACK_STEER_LIMIT    20.0f  // ± steer clamp limit (applied to motor speed), tunable
+#define TRACK_ERROR_GAIN     2.8f   // steering gain factor
+#define TRACK_STEER_LIMIT    70.0f  // ± steer clamp limit (applied to motor speed), tunable
 
 // Grayscale PID struct and P/I/D values (3 sets for different speeds)
 PID_TypeDef Grayscale_Pid;
@@ -24,8 +24,11 @@ static uint8_t right_corner_cnt = 0;
 static uint8_t turn_cnt = 0;
 int gw_offset = 0;
 
-void Track_Direction_Control(int speed)
+void Track_Direction_Control(int speed_cm_s)
 {
+    // Convert cm/s -> encoder counts/128ms for internal PID use
+    int speed = (int)cm_s_to_speed_counts((float)speed_cm_s);
+
     gw_offset = get_gray_refresh_data();
 //	printf("gw_offset:%d\r\n", gw_offset);
 
@@ -50,11 +53,17 @@ void Track_Direction_Control(int speed)
     }
 
     // Differential steering: steer > 0 (line to the right) → turn right
-    float left  = speed + steer;
-    float right = speed - steer;
+    float left  = speed - steer;
+    float right = speed + steer;
 
-//    Speed_Pid[0].SetPoint = left;
-//    Speed_Pid[1].SetPoint = right;
+    // ---- LCD: real motor speed (cm/s) ----
+    LCD_ShowString(0,  90, "L:", BLACK, WHITE, 16, 1);
+    LCD_ShowFloatNum1(20, 90, get_motor_speed_cm_s(0), 4, BLACK, WHITE, 16);
+    LCD_ShowString(120,90, "R:", BLACK, WHITE, 16, 1);
+    LCD_ShowFloatNum1(140,90, get_motor_speed_cm_s(1), 4, BLACK, WHITE, 16);
+
+    Speed_Pid[0].SetPoint = left;
+    Speed_Pid[1].SetPoint = right;
 //	set_motor_speed(-left, -right, 0, 0);
 //
 //	LCD_ShowString(20, 90, "LEFT:",  BLACK, LIGHTBLUE, 16, 1);
@@ -74,7 +83,7 @@ void Turn_Start()
     turn_start_yaw = Yaw;
 }
 
-int Turn_Left(float speed)
+int Turn_Left(float speed_cm_s)
 {
     float x;
     x = turn_start_yaw - Yaw;
@@ -91,17 +100,17 @@ int Turn_Left(float speed)
     else if (x > 30)
     {
         Speed_Pid[0].SetPoint = 0;
-        Speed_Pid[1].SetPoint = 30;
+        Speed_Pid[1].SetPoint = cm_s_to_speed_counts(speed_cm_s * 0.35f);
     }
     else
     {
         Speed_Pid[0].SetPoint = 0;
-        Speed_Pid[1].SetPoint = 80;
+        Speed_Pid[1].SetPoint = cm_s_to_speed_counts(speed_cm_s);
     }
     return 0;
 }
 
-int Turn_Right(float speed)
+int Turn_Right(float speed_cm_s)
 {
     float x;
     x = Yaw - turn_start_yaw;
@@ -117,12 +126,12 @@ int Turn_Right(float speed)
     }
     else if (x > 30)
     {
-        Speed_Pid[0].SetPoint = 30;
+        Speed_Pid[0].SetPoint = cm_s_to_speed_counts(speed_cm_s * 0.35f);
         Speed_Pid[1].SetPoint = 0;
     }
     else
     {
-        Speed_Pid[0].SetPoint = 80;
+        Speed_Pid[0].SetPoint = cm_s_to_speed_counts(speed_cm_s);
         Speed_Pid[1].SetPoint = 0;
     }
     return 0;

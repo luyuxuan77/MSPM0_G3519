@@ -465,3 +465,65 @@ void Pid_Speed()
         0,     // 左后轮 — 当前未使用
         0);    // 右后轮 — 当前未使用
 }
+/*
+ * ===========================================================================
+ * Real Speed Calculation -- encoder pulses to physical speed(cm/s) / distance(cm)
+ * ===========================================================================
+ *
+ * Hardware: MG513P30_12V, gear ratio 1:30, encoder 13 PPR, wheel dia 65mm
+ * QEI: DL_TIMER_QEI_MODE_2_INPUT = 4x resolution, 4 counts per encoder pulse
+ *
+ * Formula:
+ *   wheel circumference = PI * 6.5 = 20.42 cm
+ *   counts per wheel rev = 13 PPR * 4(QEI) * 30(gear) = 1560
+ *   cm per count = 20.42 / 1560 ~ 0.01309 cm/count
+ *   speed(cm/s) = cm_per_count / 0.128s ~ 0.102 cm/s per count/period
+ *
+ * Does NOT modify existing PID logic.
+ * ===========================================================================
+ */
+
+/*
+ * Get distance traveled this period (cm)
+ * motor_id: 0=left wheel, 1=right wheel
+ */
+float get_motor_distance_cm(int motor_id)
+{
+    float filtered;
+    if (motor_id == 0) {
+        filtered = filtered_speed_M1;
+    } else {
+        filtered = filtered_speed_M2;
+    }
+    return filtered * WHEEL_CIRCUMFERENCE_CM
+           / ENCODER_PULSES_PER_WHEEL_REV;
+}
+
+/*
+ * Get real speed (cm/s)
+ * motor_id: 0=left wheel, 1=right wheel
+ */
+float get_motor_speed_cm_s(int motor_id)
+{
+    float filtered;
+    if (motor_id == 0) {
+        filtered = filtered_speed_M1;
+    } else {
+        filtered = filtered_speed_M2;
+    }
+    return filtered * WHEEL_CIRCUMFERENCE_CM
+           / (ENCODER_PULSES_PER_WHEEL_REV * SPEED_PERIOD_SEC);
+}
+
+/*
+ * Convert real speed (cm/s) to encoder counts per 128ms period.
+ * Use this to translate human-readable speed to PID SetPoint units.
+ * Formula: counts = cm_s * pulses_per_wheel_rev * period / circumference
+ *                = cm_s * 1560 * 0.128 / 20.42
+ *                = cm_s * 9.78
+ */
+float cm_s_to_speed_counts(float cm_s)
+{
+    return cm_s * ENCODER_PULSES_PER_WHEEL_REV * SPEED_PERIOD_SEC
+           / WHEEL_CIRCUMFERENCE_CM;
+}
