@@ -19,6 +19,7 @@ static uint32_t pid_speed = 0;
 static uint32_t motor = 0;
 static uint32_t gray = 0;
 static uint32_t speed_tick = 0;
+static uint32_t menu_tick = 0;
 
 /* ---------- Global variables ---------- */
 float ypr[3];
@@ -59,6 +60,7 @@ int main(void)
 
 	/* Gray sensor init */
 	adc0_init();
+	menu_init();
 	// LCD_ShowString(20,20,"goffset:",BLACK,WHITE,16,1);  // disabled
 
 
@@ -92,13 +94,22 @@ int main(void)
 //			printf("L:%.1f R:%.1f cm/s\r\n", left_speed, right_speed);
 //		}
 		
+				/* ---- Menu update every 200ms ---- */
+		if (system_time_elapsed_ms(&menu_tick, 10))
+		{
+			menu_update();
+		}
+
 		/* ---- Gray sensor data collection every 10ms ---- */
 		if (system_time_elapsed_ms(&gray, 10))
 		{
-			Track_Direction_Control(50);  // 40 cm/s
+			if (run_flag)
+				Track_Direction_Control(g_track_speed_cm_s);
+			else
+				get_gray_refresh_data();
 		}
 
-//        /* ---- 5.4 INS task every 10ms ---- */
+	//        /* ---- 5.4 INS task every 10ms ---- */
 //        if (system_time_elapsed_ms(&gw_tick, 10))
 //		{
 ////			around();

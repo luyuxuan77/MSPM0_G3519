@@ -1,68 +1,103 @@
 #include "KEY/key.h"
 #include "led.h"
+
+uint8_t key1_flag = 0;
+uint8_t key2_flag = 0;
+uint8_t mode     = 0;
+uint8_t run_flag = 0;
+
+volatile uint8_t key1_short = 0;
+volatile uint8_t key1_long  = 0;
+volatile uint8_t key2_short = 0;
+volatile uint8_t key2_long  = 0;
+
+/* internal: press tracking */
+static volatile uint32_t k1_tick   = 0;
+static volatile uint32_t k2_tick   = 0;
+static volatile uint8_t  k1_held   = 0;  // 1 = currently pressed
+static volatile uint8_t  k2_held   = 0;
+
+#define LONG_PRESS_MS  800
+#define DEBOUNCE_MS    50
+
 void key_init(void)
 {
-	NVIC_EnableIRQ(KEY_GPIOA_INT_IRQN); // 开启中断
-	NVIC_EnableIRQ(KEY_GPIOC_INT_IRQN); // 开启中断
-	LED1(1) ;
-	LED2(1) ;
+    NVIC_EnableIRQ(KEY_GPIOA_INT_IRQN);
+    NVIC_EnableIRQ(KEY_GPIOC_INT_IRQN);
+    LED1(1);
+    LED2(1);
 }
 
-uint8_t key1_flag=0;
-uint8_t key2_flag=0;
-uint8_t mode=0;
-uint8_t run_flag = 0;
-volatile uint32_t key1_time = 0;
-volatile uint32_t key2_time = 0;
-
-//模式1：key1是按下的次数，k2短按一下是确定，长按5秒是切换模式.目前有模式1，模式2
-
+/*
+ * ISR: GPIO falling-edge → record press time
+ */
 void GROUP1_IRQHandler(void)
 {
-	 uint32_t now = nowtime;
-	
-	/*收集可以产生触发中断的引脚*/
-	uint32_t IRQn_key = DL_GPIO_getEnabledInterruptStatus(KEY_Key1_PORT, KEY_Key1_PIN);
-	/*根据不同引脚执行对应中断代码*/
-	if (IRQn_key & KEY_Key1_PIN) 
-	{	
-		DL_GPIO_clearInterruptStatus(KEY_Key1_PORT,KEY_Key1_PIN);
-		if(now-key1_time>50)
-        {
+    uint32_t now = nowtime;
+    uint32_t irq;
+
+    /* ---- Key1 (PA17) ---- */
+    irq = DL_GPIO_getEnabledInterruptStatus(KEY_Key1_PORT, KEY_Key1_PIN);
+    if (irq & KEY_Key1_PIN) {
+        DL_GPIO_clearInterruptStatus(KEY_Key1_PORT, KEY_Key1_PIN);
+        if (now - k1_tick > DEBOUNCE_MS) {
+            k1_tick = now;
+            k1_held = 1;
             LED1_toggle;
-            key1_flag++;
-            key1_time=now;
         }
-	}
-	uint32_t status = DL_GPIO_getEnabledInterruptStatus(KEY_Key2_PORT, KEY_Key2_PIN);
-	
-	if(status & KEY_Key2_PIN)
-    {
-		DL_GPIO_clearInterruptStatus(KEY_Key2_PORT,KEY_Key2_PIN);
-		 if(now-key2_time>50)
-        {
+    }
+
+    /* ---- Key2 (PC5) ---- */
+    irq = DL_GPIO_getEnabledInterruptStatus(KEY_Key2_PORT, KEY_Key2_PIN);
+    if (irq & KEY_Key2_PIN) {
+        DL_GPIO_clearInterruptStatus(KEY_Key2_PORT, KEY_Key2_PIN);
+        if (now - k2_tick > DEBOUNCE_MS) {
+            k2_tick = now;
+            k2_held = 1;
             LED2_toggle;
-            key2_flag++;
-			run_flag = 1; 
-            key2_time=now;
+        }
+    }
+}
+
+/*
+ * Called from TIMA1 1ms ISR — checks key release and sets short/long flags
+ */
+void key_tick_1ms(void)
+{
+    uint32_t now = nowtime;
+
+    if (k1_held) {
+        if (DL_GPIO_readPins(KEY_Key1_PORT, KEY_Key1_PIN) != 0) {  // released
+            k1_held = 0;
+            uint32_t dt = now - k1_tick;
+            if (dt > DEBOUNCE_MS) {
+                if (dt < LONG_PRESS_MS) key1_short = 1;
+                else                    key1_long  = 1;
+            }
+        }
+    }
+
+    if (k2_held) {
+        if (DL_GPIO_readPins(KEY_Key2_PORT, KEY_Key2_PIN) != 0) {
+            k2_held = 0;
+            uint32_t dt = now - k2_tick;
+            if (dt > DEBOUNCE_MS) {
+                if (dt < LONG_PRESS_MS) key2_short = 1;
+                else                    key2_long  = 1;
+            }
         }
     }
 }
 
 void mode_switch()
 {
-	switch(mode)
-	{
-		case 0:		
-			if (key2_flag)
-			{
-				target_round=key1_flag;
-				if(target_round>5) target_round=5;
-				key2_flag=0;
-			}
-			break;
-//		case 1:
-			
-	}
+    switch (mode) {
+    case 0:
+        if (key2_flag) {
+            target_round = key1_flag;
+            if (target_round > 5) target_round = 5;
+            key2_flag = 0;
+        }
+        break;
+    }
 }
-

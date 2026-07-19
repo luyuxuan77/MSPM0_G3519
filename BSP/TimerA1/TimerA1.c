@@ -60,6 +60,7 @@ void TimerA1_INST_IRQHandler(void)
 	{
 		case DL_TIMERA_IIDX_LOAD:
 			nowtime++;
+		key_tick_1ms();
 //		if((nowtime%10U)==0U)
 // 			motor_control_update();
 		break;

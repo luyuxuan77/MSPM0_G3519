@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>__MSPM0G3519__</Define>
               <Undefine></Undefine>
-              <IncludePath>..\BSP;..\Source;..\Source\third_party\CMSIS\Core\Include;..\BSP\IMU;..\BSP\IMU\LSM6DSV16X;..\BSP\GRAY;..\BSP\MOTOR;..\BSP\PID;..\BSP\TimerA1;..\BSP\UART0;..\BSP\KEY;..\BSP\LED;..\User;..\BSP\IMU\IMU;..\BSP\IMU;..\BSP\APP_INIT;..\BSP\CONTROL;..\BSP\INS;..\BSP\ROAD;..\User;..\BSP\Buzzer;..\BSP\PWM1_Shared</IncludePath>
+              <IncludePath>..\BSP;..\Source;..\Source\third_party\CMSIS\Core\Include;..\BSP\IMU;..\BSP\IMU\LSM6DSV16X;..\BSP\GRAY;..\BSP\MOTOR;..\BSP\PID;..\BSP\TimerA1;..\BSP\UART0;..\BSP\KEY;..\BSP\LED;..\User;..\BSP\IMU\IMU;..\BSP\IMU;..\BSP\APP_INIT;..\BSP\CONTROL;..\BSP\INS;..\BSP\ROAD;..\User;..\BSP\Buzzer;..\BSP\PWM1_Shared;..\BSP\MENU</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -438,6 +438,11 @@
               <FileName>motor.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\BSP\MOTOR\motor.c</FilePath>
+            </File>
+            <File>
+              <FileName>menu.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\MENU\menu.c</FilePath>
             </File>
             <File>
               <FileName>key.c</FileName>

@@ -40,6 +40,7 @@
 #include "ADC0/adc0.h"
 #include "control.h"
 #include "road.h"
+#include "MENU/menu.h"
 //#include "UART1_FTD/uart1_ftd.h"
 #include "SCSLib/SCS.h"
 #include "SCSLib/SMS_STS.h"

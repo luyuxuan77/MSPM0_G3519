@@ -40,27 +40,9 @@ void Track_Direction_Control(int speed_cm_s)
     if (steer >  TRACK_STEER_LIMIT) steer =  TRACK_STEER_LIMIT;
     if (steer < -TRACK_STEER_LIMIT) steer = -TRACK_STEER_LIMIT;
 
-    // LCD: show steer value (clear then draw, same x=108 for both signs)
-    LCD_Fill(108, 65, 155, 80, WHITE);  // 3 digits × 16px = 48px width
-    if (steer < 0)
-    {
-        LCD_ShowString(108, 65, "-", BLACK, WHITE, 16, 1);
-        LCD_ShowIntNum(116, 65, -(int)steer, 3, BLACK, WHITE, 16);
-    }
-    else
-    {
-        LCD_ShowIntNum(108, 65, (int)steer, 3, BLACK, WHITE, 16);
-    }
-
     // Differential steering: steer > 0 (line to the right) → turn right
     float left  = speed - steer;
     float right = speed + steer;
-
-    // ---- LCD: real motor speed (cm/s) ----
-    LCD_ShowString(0,  90, "L:", BLACK, WHITE, 16, 1);
-    LCD_ShowFloatNum1(20, 90, get_motor_speed_cm_s(0), 4, BLACK, WHITE, 16);
-    LCD_ShowString(120,90, "R:", BLACK, WHITE, 16, 1);
-    LCD_ShowFloatNum1(140,90, get_motor_speed_cm_s(1), 4, BLACK, WHITE, 16);
 
     Speed_Pid[0].SetPoint = left;
     Speed_Pid[1].SetPoint = right;

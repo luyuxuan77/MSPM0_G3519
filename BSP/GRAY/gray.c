@@ -90,26 +90,26 @@ int get_gray_refresh_data(void)
 	int weighted_sum = 0;
 
 	// physical order (left → right): [7] [3] [5] [1] | [6] [2] [4] [0]
-	if (gray_now_val[7] < 1000) { int d = 1000 - gray_now_val[7]; total_darkness += d; weighted_sum += gray_weight[0] * d; offset_s |= 1 << 0; }
-	if (gray_now_val[3] < 1000) { int d = 1000 - gray_now_val[3]; total_darkness += d; weighted_sum += gray_weight[1] * d; offset_s |= 1 << 1; }
-	if (gray_now_val[5] < 1000) { int d = 1000 - gray_now_val[5]; total_darkness += d; weighted_sum += gray_weight[2] * d; offset_s |= 1 << 2; }
-	if (gray_now_val[1] < 1000) { int d = 1000 - gray_now_val[1]; total_darkness += d; weighted_sum += gray_weight[3] * d; offset_s |= 1 << 3; }
-	if (gray_now_val[6] < 1000) { int d = 1000 - gray_now_val[6]; total_darkness += d; weighted_sum += gray_weight[4] * d; offset_s |= 1 << 4; }
-	if (gray_now_val[2] < 1000) { int d = 1000 - gray_now_val[2]; total_darkness += d; weighted_sum += gray_weight[5] * d; offset_s |= 1 << 5; }
-	if (gray_now_val[4] < 1000) { int d = 1000 - gray_now_val[4]; total_darkness += d; weighted_sum += gray_weight[6] * d; offset_s |= 1 << 6; }
-	if (gray_now_val[0] < 1000) { int d = 1000 - gray_now_val[0]; total_darkness += d; weighted_sum += gray_weight[7] * d; offset_s |= 1 << 7; }
+	if (gray_now_val[7] < g_gray_threshold[0]) { int d = g_gray_threshold[0] - gray_now_val[7]; total_darkness += d; weighted_sum += gray_weight[0] * d; offset_s |= 1 << 0; }
+	if (gray_now_val[3] < g_gray_threshold[1]) { int d = g_gray_threshold[1] - gray_now_val[3]; total_darkness += d; weighted_sum += gray_weight[1] * d; offset_s |= 1 << 1; }
+	if (gray_now_val[5] < g_gray_threshold[2]) { int d = g_gray_threshold[2] - gray_now_val[5]; total_darkness += d; weighted_sum += gray_weight[2] * d; offset_s |= 1 << 2; }
+	if (gray_now_val[1] < g_gray_threshold[3]) { int d = g_gray_threshold[3] - gray_now_val[1]; total_darkness += d; weighted_sum += gray_weight[3] * d; offset_s |= 1 << 3; }
+	if (gray_now_val[6] < g_gray_threshold[4]) { int d = g_gray_threshold[4] - gray_now_val[6]; total_darkness += d; weighted_sum += gray_weight[4] * d; offset_s |= 1 << 4; }
+	if (gray_now_val[2] < g_gray_threshold[5]) { int d = g_gray_threshold[5] - gray_now_val[2]; total_darkness += d; weighted_sum += gray_weight[5] * d; offset_s |= 1 << 5; }
+	if (gray_now_val[4] < g_gray_threshold[6]) { int d = g_gray_threshold[6] - gray_now_val[4]; total_darkness += d; weighted_sum += gray_weight[6] * d; offset_s |= 1 << 6; }
+	if (gray_now_val[0] < g_gray_threshold[7]) { int d = g_gray_threshold[7] - gray_now_val[0]; total_darkness += d; weighted_sum += gray_weight[7] * d; offset_s |= 1 << 7; }
 
 	int goffset = (total_darkness > 0) ? (weighted_sum * GOFFSET_GAIN / total_darkness) : 0;
 	// LCD: squares(y=8) + values(y=20), physical order [0][4][2][6]|[1][5][3][7]
 	// threshold=1000: below -> RED(detected), above -> BLACK
-	LCD_Fill(0,   8, 23, 17, (gray_now_val[7] < 1000) ? RED : BLACK);
-	LCD_Fill(36,  8, 59, 17, (gray_now_val[3] < 1000) ? RED : BLACK);
-	LCD_Fill(72,  8, 95, 17, (gray_now_val[5] < 1000) ? RED : BLACK);
-	LCD_Fill(108, 8, 131,17, (gray_now_val[1] < 1000) ? RED : BLACK);
-	LCD_Fill(144, 8, 167,17, (gray_now_val[6] < 1000) ? RED : BLACK);
-	LCD_Fill(180, 8, 203,17, (gray_now_val[2] < 1000) ? RED : BLACK);
-	LCD_Fill(216, 8, 239,17, (gray_now_val[4] < 1000) ? RED : BLACK);
-	LCD_Fill(252, 8, 275,17, (gray_now_val[0] < 1000) ? RED : BLACK);
+	LCD_Fill(0,   8, 23, 17, (gray_now_val[7] < g_gray_threshold[0]) ? RED : BLACK);
+	LCD_Fill(36,  8, 59, 17, (gray_now_val[3] < g_gray_threshold[1]) ? RED : BLACK);
+	LCD_Fill(72,  8, 95, 17, (gray_now_val[5] < g_gray_threshold[2]) ? RED : BLACK);
+	LCD_Fill(108, 8, 131,17, (gray_now_val[1] < g_gray_threshold[3]) ? RED : BLACK);
+	LCD_Fill(144, 8, 167,17, (gray_now_val[6] < g_gray_threshold[4]) ? RED : BLACK);
+	LCD_Fill(180, 8, 203,17, (gray_now_val[2] < g_gray_threshold[5]) ? RED : BLACK);
+	LCD_Fill(216, 8, 239,17, (gray_now_val[4] < g_gray_threshold[6]) ? RED : BLACK);
+	LCD_Fill(252, 8, 275,17, (gray_now_val[0] < g_gray_threshold[7]) ? RED : BLACK);
 
 	LCD_ShowIntNum(0,  20, gray_now_val[7], 4, BLACK, WHITE, 12);
 	LCD_ShowIntNum(36, 20, gray_now_val[3], 4, BLACK, WHITE, 12);
@@ -121,15 +121,6 @@ int get_gray_refresh_data(void)
 	LCD_ShowIntNum(252,20, gray_now_val[0], 4, BLACK, WHITE, 12);
 
 
-	// ---- centroid offset display ----
-	LCD_Fill(0, 36, 275, 53, WHITE);  // clear area below sensor values
-	LCD_ShowString(60, 38, "OFF:", BLACK, WHITE, 16, 1);
-	if (goffset < 0) {
-		LCD_ShowString(108, 38, "-", BLACK, WHITE, 16, 1);
-		LCD_ShowIntNum(116, 38, -goffset, 3, BLACK, WHITE, 16);
-	} else {
-		LCD_ShowIntNum(108, 38, goffset, 3, BLACK, WHITE, 16);
-	}
 	return goffset;
 //	printf("%d\t %d\t %d\t %d\t %d\t %d\t %d\t %d\t \r\n",
 //	gray_now_val[0],gray_now_val[4],gray_now_val[2],gray_now_val[6],gray_now_val[1],gray_now_val[5],gray_now_val[3],gray_now_val[7]);
