@@ -46,6 +46,20 @@ void ADC_gray_INST_IRQHandler(void)
 
 uint16_t gray_now_val[8]={0};
 uint8_t offset_s=0;
+
+// 传感器物理排列(左→右): [7] [3] [5] [1] | [6] [2] [4] [0]
+// 权重: 外侧大, 内侧小 (非线性), 中间微调, 两侧激进修正
+static const int8_t gray_weight[8] = {
+    -14,   // idx 0: 传感器[7] 最左侧
+     -9,   // idx 1: 传感器[3] 左中外
+     -3,   // idx 2: 传感器[5] 左中内
+     -1,   // idx 3: 传感器[1] 紧邻中线左侧, 微调
+      1,   // idx 4: 传感器[6] 紧邻中线右侧, 微调
+      3,   // idx 5: 传感器[2] 右中内
+      9,   // idx 6: 传感器[4] 右中外
+     14    // idx 7: 传感器[0] 最右侧
+};
+
 int get_gray_refresh_data(void)
 {
 
@@ -76,14 +90,14 @@ int get_gray_refresh_data(void)
 	int weighted_sum = 0;
 
 	// physical order (left → right): [7] [3] [5] [1] | [6] [2] [4] [0]
-	if (gray_now_val[7] < 1000) { int d = 1000 - gray_now_val[7]; total_darkness += d; weighted_sum += -7 * d; offset_s |= 1 << 0; }
-	if (gray_now_val[3] < 1000) { int d = 1000 - gray_now_val[3]; total_darkness += d; weighted_sum += -5 * d; offset_s |= 1 << 1; }
-	if (gray_now_val[5] < 1000) { int d = 1000 - gray_now_val[5]; total_darkness += d; weighted_sum += -3 * d; offset_s |= 1 << 2; }
-	if (gray_now_val[1] < 1000) { int d = 1000 - gray_now_val[1]; total_darkness += d; weighted_sum += -1 * d; offset_s |= 1 << 3; }
-	if (gray_now_val[6] < 1000) { int d = 1000 - gray_now_val[6]; total_darkness += d; weighted_sum += 1 * d;  offset_s |= 1 << 4; }
-	if (gray_now_val[2] < 1000) { int d = 1000 - gray_now_val[2]; total_darkness += d; weighted_sum += 3 * d;  offset_s |= 1 << 5; }
-	if (gray_now_val[4] < 1000) { int d = 1000 - gray_now_val[4]; total_darkness += d; weighted_sum += 5 * d;  offset_s |= 1 << 6; }
-	if (gray_now_val[0] < 1000) { int d = 1000 - gray_now_val[0]; total_darkness += d; weighted_sum += 7 * d;  offset_s |= 1 << 7; }
+	if (gray_now_val[7] < 1000) { int d = 1000 - gray_now_val[7]; total_darkness += d; weighted_sum += gray_weight[0] * d; offset_s |= 1 << 0; }
+	if (gray_now_val[3] < 1000) { int d = 1000 - gray_now_val[3]; total_darkness += d; weighted_sum += gray_weight[1] * d; offset_s |= 1 << 1; }
+	if (gray_now_val[5] < 1000) { int d = 1000 - gray_now_val[5]; total_darkness += d; weighted_sum += gray_weight[2] * d; offset_s |= 1 << 2; }
+	if (gray_now_val[1] < 1000) { int d = 1000 - gray_now_val[1]; total_darkness += d; weighted_sum += gray_weight[3] * d; offset_s |= 1 << 3; }
+	if (gray_now_val[6] < 1000) { int d = 1000 - gray_now_val[6]; total_darkness += d; weighted_sum += gray_weight[4] * d; offset_s |= 1 << 4; }
+	if (gray_now_val[2] < 1000) { int d = 1000 - gray_now_val[2]; total_darkness += d; weighted_sum += gray_weight[5] * d; offset_s |= 1 << 5; }
+	if (gray_now_val[4] < 1000) { int d = 1000 - gray_now_val[4]; total_darkness += d; weighted_sum += gray_weight[6] * d; offset_s |= 1 << 6; }
+	if (gray_now_val[0] < 1000) { int d = 1000 - gray_now_val[0]; total_darkness += d; weighted_sum += gray_weight[7] * d; offset_s |= 1 << 7; }
 
 	int goffset = (total_darkness > 0) ? (weighted_sum * GOFFSET_GAIN / total_darkness) : 0;
 	// LCD: squares(y=8) + values(y=20), physical order [0][4][2][6]|[1][5][3][7]
