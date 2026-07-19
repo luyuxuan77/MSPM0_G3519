@@ -64,6 +64,8 @@ void menu_update(void)
         switch (state) {
         case STATE_TRACK:
             run_flag = 0;
+            Speed_Pid[0].SetPoint = 0;
+            Speed_Pid[1].SetPoint = 0;
             state = STATE_MAIN;
             break;
         case STATE_THRESHOLD_SELECT:

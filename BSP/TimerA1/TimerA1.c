@@ -58,12 +58,20 @@ void TimerA1_INST_IRQHandler(void)
 
 	switch( DL_TimerA_getPendingInterrupt(TimerA1_INST))
 	{
-		case DL_TIMERA_IIDX_LOAD:
+		case DL_TIMERA_IIDX_LOAD: {
+			static uint8_t pid_10ms = 0, motor_128ms = 0;
 			nowtime++;
-		key_tick_1ms();
-//		if((nowtime%10U)==0U)
-// 			motor_control_update();
-		break;
+			key_tick_1ms();
+			if (++pid_10ms >= 10) {
+				pid_10ms = 0;
+				Pid_Speed();
+			}
+			if (++motor_128ms >= 128) {
+				motor_128ms = 0;
+				motor_control_update();
+			}
+			break;
+		}
 		default:
 			break;
 	}

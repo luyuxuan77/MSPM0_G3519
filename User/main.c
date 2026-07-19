@@ -13,9 +13,7 @@ static uint32_t imu_tick = 0;
 
 /* ---------- Time-slice scheduling ---------- */
 static uint32_t print_tick = 0;
-static uint32_t pid_tick = 0;
 static uint32_t gw_tick = 0;
-static uint32_t pid_speed = 0;
 static uint32_t motor = 0;
 static uint32_t gray = 0;
 static uint32_t speed_tick = 0;
@@ -62,8 +60,6 @@ int main(void)
 	adc0_init();
 	menu_init();
 	// LCD_ShowString(20,20,"goffset:",BLACK,WHITE,16,1);  // disabled
-
-
     /* ===== 5. Main loop ===== */
     while (1)
     {
@@ -74,18 +70,6 @@ int main(void)
 //			mode_switch();
 //        }
 
-        /* ---- Motor PID control every 128ms ---- */
-        if (system_time_elapsed_ms(&pid_tick, 128))
-		{
-            motor_control_update();
-        }
-
-        /* ---- Speed command every 10ms ---- */
-        if (system_time_elapsed_ms(&pid_speed, 10))
-		{
-            Pid_Speed();
-        }
-
 //		/* ---- Motor speed read every 128ms ---- */
 //		if (system_time_elapsed_ms(&speed_tick, 128))
 //		{
@@ -95,7 +79,7 @@ int main(void)
 //		}
 		
 				/* ---- Menu update every 200ms ---- */
-		if (system_time_elapsed_ms(&menu_tick, 10))
+		if (system_time_elapsed_ms(&menu_tick, 50))
 		{
 			menu_update();
 		}
@@ -103,10 +87,13 @@ int main(void)
 		/* ---- Gray sensor data collection every 10ms ---- */
 		if (system_time_elapsed_ms(&gray, 10))
 		{
-			if (run_flag)
+			if (run_flag) {
 				Track_Direction_Control(g_track_speed_cm_s);
-			else
+			} else {
 				get_gray_refresh_data();
+				Speed_Pid[0].SetPoint = 0;
+				Speed_Pid[1].SetPoint = 0;
+			}
 		}
 
 	//        /* ---- 5.4 INS task every 10ms ---- */
@@ -124,8 +111,6 @@ int main(void)
 ////			int tell = road_tell();
 ////			LCD_ShowIntNum(50,50,tell,3,BLACK,WHITE,24);
 //        }
-
-
 //			Track_Direction_Control(100) ;
 //            imu_data_t imu;
 //			IMU_getData(&imu);
@@ -137,10 +122,6 @@ int main(void)
 //			printf("x=%.2f y=%.2f vx=%.2f vy=%.2f\r\n",
 //			ins->x,ins->y,ins->vx,ins->vy);
 //			get_gray_offset();
-
-
-
-
 //		delay_ms(100);
     }
 }
