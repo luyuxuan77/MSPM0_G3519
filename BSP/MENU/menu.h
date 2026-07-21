@@ -8,6 +8,15 @@ extern uint16_t g_gray_threshold[8];
 /* Track speed (cm/s) */
 extern int g_track_speed_cm_s;
 
+/* ===== Menu states ===== */
+#define STATE_MAIN              0
+#define STATE_THRESHOLD_SELECT  1
+#define STATE_THRESHOLD_ADJUST  2
+#define STATE_TASK1             3
+#define STATE_TASK2             4
+#define STATE_TASK3             5
+#define STATE_TASK4             6
+
 void menu_init(void);
 void menu_update(void);
 

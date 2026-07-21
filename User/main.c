@@ -24,6 +24,25 @@ float ypr[3];
 uint32_t adc0_data[4] = {0};
 uint32_t qei_cnt[2] = {0};
 
+/* ===== Self-test indicator (LED1+LED2 blink, buzzer) ===== */
+static void self_test(void)
+{
+    buzzer_init();
+
+    /* LED1+LED2 blink 5 times (100ms on/off, total 1s) */
+    for (int i = 0; i < 5; i++) {
+        LED1(1); LED2(1);
+        delay_ms(100);
+        LED1(0); LED2(0);
+        delay_ms(100);
+    }
+
+    /* Buzzer 2kHz, 1s */
+    buzzer_play(2000, 50);
+    delay_ms(500);
+    buzzer_stop();
+}
+
 int main(void)
 {
     /* ===== 1. System init ===== */
@@ -59,8 +78,11 @@ int main(void)
 	/* Gray sensor init */
 	adc0_init();
 	menu_init();
-	// LCD_ShowString(20,20,"goffset:",BLACK,WHITE,16,1);  // disabled
-    /* ===== 5. Main loop ===== */
+
+    /* ===== 5. Self-test ===== */
+    self_test();
+
+    /* ===== 6. Main loop ===== */
     while (1)
     {
 //        /* ---- 5.1 IMU data every 10ms ---- */
@@ -104,13 +126,11 @@ int main(void)
 ////			Turn_Right(100);
 //		}
 
-//        /* ---- 5.3 Print IMU data every 500ms ---- */
-//        if (system_time_elapsed_ms(&print_tick, 500))
-//		{
-//            IMU_yaw();
-////			int tell = road_tell();
-////			LCD_ShowIntNum(50,50,tell,3,BLACK,WHITE,24);
-//        }
+        /* ---- Print IMU data every 500ms ---- */
+        if (system_time_elapsed_ms(&print_tick, 25))
+		{
+            printf("Y:%.1f P:%.1f R:%.1f\r\n", ypr[0], ypr[1], ypr[2]);
+        }
 //			Track_Direction_Control(100) ;
 //            imu_data_t imu;
 //			IMU_getData(&imu);

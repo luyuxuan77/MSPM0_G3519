@@ -1,6 +1,7 @@
 #include "bsp.h"
 #include "MOTOR/motor.h"
 volatile uint32_t nowtime = 0U;
+extern float ypr[3];
 
 void system_time_init(void)
 {
@@ -55,11 +56,10 @@ bool system_time_elapsed_ms(uint32_t *last_tick_ms, uint32_t interval_ms)
 
 void TimerA1_INST_IRQHandler(void)
 {
-
 	switch( DL_TimerA_getPendingInterrupt(TimerA1_INST))
 	{
 		case DL_TIMERA_IIDX_LOAD: {
-			static uint8_t pid_10ms = 0, motor_128ms = 0;
+			static uint8_t pid_10ms = 0, motor_128ms = 0, imu_20ms = 0;
 			nowtime++;
 			key_tick_1ms();
 			if (++pid_10ms >= 10) {
@@ -70,6 +70,10 @@ void TimerA1_INST_IRQHandler(void)
 				motor_128ms = 0;
 				motor_control_update();
 			}
+			if (++imu_20ms >= 20) {
+				imu_20ms = 0;
+				IMU_getYawPitchRoll(ypr);
+			}
 			break;
 		}
 		default:
@@ -79,10 +83,6 @@ void TimerA1_INST_IRQHandler(void)
 
 void TimerA1_init(void)
 {
-
 	NVIC_ClearPendingIRQ(TimerA1_INST_INT_IRQN);
 	NVIC_EnableIRQ(TimerA1_INST_INT_IRQN);
 }
-
-
-
