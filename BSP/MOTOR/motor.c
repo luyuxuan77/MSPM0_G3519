@@ -108,7 +108,7 @@ static int16_t speed_M2 = 0;  // 右轮原始速度 (负号修正: 右轮编码�
 static uint8_t motor_pid_init_flag = 0;  // PID初始化完成标志: 0=跳过控制 1=允许运行
 
 
-#define SPEED_PWM_MAX 800  // PID输出限幅 (PWM周期1000, 留200余量给刹车和转向叠加)
+#define SPEED_PWM_MAX 900  // PID输出限幅 (PWM周期1000, 留100余量给刹车和转向叠加)
 /**
  * motor_init() — 电机硬件初始化
  *
@@ -381,8 +381,8 @@ void motor_control_update(void)
 		ramp_setpoint_M2 = 0;  // 右轮ramp起始值为0
 		ramp_active = 1;  // 标记斜坡已激活
 	}
-	ramp_setpoint_M1 += (Speed_Pid[0].SetPoint - ramp_setpoint_M1) * 0.25f;
-	ramp_setpoint_M2 += (Speed_Pid[1].SetPoint - ramp_setpoint_M2) * 0.25f;
+	ramp_setpoint_M1 += (Speed_Pid[0].SetPoint - ramp_setpoint_M1) * 0.50f;
+	ramp_setpoint_M2 += (Speed_Pid[1].SetPoint - ramp_setpoint_M2) * 0.50f;
 	if (Speed_Pid[0].SetPoint - ramp_setpoint_M1 < 0.5f) ramp_setpoint_M1 = Speed_Pid[0].SetPoint;
 	if (Speed_Pid[1].SetPoint - ramp_setpoint_M2 < 0.5f) ramp_setpoint_M2 = Speed_Pid[1].SetPoint;
 	if (ramp_setpoint_M1 > Speed_Pid[0].SetPoint - 1.0f && ramp_setpoint_M2 > Speed_Pid[1].SetPoint - 1.0f) ramp_done = 1;

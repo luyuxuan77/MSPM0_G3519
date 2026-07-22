@@ -9,6 +9,8 @@
 uint16_t g_gray_threshold[8] = {1000,1000,1000,1000,1000,1000,1000,1000};
 int      g_track_speed_cm_s    = 40;
 uint8_t  g_show_gray_display  = 0;
+uint8_t  g_task1_active       = 0;
+uint8_t  g_task1_running      = 0;
 
 extern volatile float Yaw, Pitch, Roll;
 
@@ -70,6 +72,12 @@ void menu_update(void)
             state = STATE_THRESHOLD_SELECT;
             break;
         case STATE_TASK1:
+            g_task1_active = 0;
+            g_task1_running = 0;
+            Speed_Pid[0].SetPoint = 0;
+            Speed_Pid[1].SetPoint = 0;
+            state = STATE_MAIN;
+            break;
         case STATE_TASK2:
         case STATE_TASK3:
         case STATE_TASK4:
@@ -85,10 +93,19 @@ void menu_update(void)
         switch (state) {
         case STATE_MAIN:
             if      (cursor == 0) { state = STATE_THRESHOLD_DISPLAY; cursor = 0; }
-            else if (cursor == 1) { state = STATE_TASK1; }
+            else if (cursor == 1) { state = STATE_TASK1; g_task1_active = 1; g_task1_running = 0; }
             else if (cursor == 2) { state = STATE_TASK2; }
             else if (cursor == 3) { state = STATE_TASK3; }
             else                  { state = STATE_TASK4; }
+            break;
+        case STATE_TASK1:
+            g_task1_running = !g_task1_running;
+            if (g_task1_running) {
+                motor_speed_pid_init();
+            } else {
+                Speed_Pid[0].SetPoint = 0;
+                Speed_Pid[1].SetPoint = 0;
+            }
             break;
         case STATE_THRESHOLD_DISPLAY:
             g_show_gray_display = !g_show_gray_display;
@@ -142,6 +159,38 @@ void menu_update(void)
         if (strcmp(_sp, buf)) { LCD_ShowString(155,55,buf,BLUE, WHITE,12,0); strcpy(_sp,buf); }
         sprintf(buf, "%5.1f", _dr);
         if (strcmp(_sr, buf)) { LCD_ShowString(155,70,buf,GREEN,WHITE,12,0); strcpy(_sr,buf); }
+    }
+
+    /* ===== Periodic TASK1 speed refresh (200ms, incremental — no flicker) ===== */
+    if (state == STATE_TASK1 && g_task1_running &&
+        system_time_get_tick_ms() - periodic_tick > 200) {
+        periodic_tick = system_time_get_tick_ms();
+        {
+            static float _dL = 0, _dR = 0;
+            static char  _sL[8], _sR[8];
+            char buf[8];
+
+            float L = get_motor_speed_cm_s(0);
+            float R = get_motor_speed_cm_s(1);
+
+            /* Light EMA to smooth display jitter */
+            _dL += (L - _dL) * 0.3f;
+            _dR += (R - _dR) * 0.3f;
+
+            /* Left speed — redraw only when formatted value changes */
+            sprintf(buf, "%5.1f", _dL);
+            if (strcmp(_sL, buf)) {
+                LCD_ShowString(20, 95, buf, RED, WHITE, 16, 0);
+                strcpy(_sL, buf);
+            }
+
+            /* Right speed */
+            sprintf(buf, "%5.1f", _dR);
+            if (strcmp(_sR, buf)) {
+                LCD_ShowString(20, 120, buf, RED, WHITE, 16, 0);
+                strcpy(_sR, buf);
+            }
+        }
     }
 
     /* ===== Draw (only when dirty) ===== */
@@ -222,11 +271,44 @@ void menu_update(void)
         LCD_ShowString(0, 150, "K1:toggle  K1long:OK  K2long:cancel", BLACK, WHITE, 12, 1);
         break;
 
-    /* ---- TASK 1 ---- */
+    /* ---- TASK 1: PID Speed Test @ 100 cm/s ---- */
     case STATE_TASK1:
-        LCD_ShowString(0, 50, "TASK 1", BLACK, WHITE, 24, 1);
-        LCD_ShowString(0, 95, "Coming soon...", BLACK, WHITE, 16, 1);
-        LCD_ShowString(0, 165, "K2long:back", BLACK, WHITE, 12, 1);
+        {
+            LCD_ShowString(0, 40, "PID SPEED TEST", BLACK, WHITE, 20, 1);
+            LCD_ShowString(0, 70, "Target:100 cm/s", BLACK, WHITE, 16, 1);
+
+            if (g_task1_running) {
+                float L_actual = get_motor_speed_cm_s(0);
+                float R_actual = get_motor_speed_cm_s(1);
+                char buf[8];
+
+                LCD_ShowString(80, 40, "[ RUNNING ]", GREEN, WHITE, 12, 1);
+
+                /* Left: label + value + unit at fixed positions */
+                LCD_ShowString(0,  95, "L:",   BLACK, WHITE, 12, 1);
+                LCD_ShowString(65, 95, "cm/s", BLACK, WHITE, 12, 1);
+                sprintf(buf, "%5.1f", L_actual);
+                LCD_ShowString(20, 95, buf, RED, WHITE, 16, 1);
+
+                /* Right */
+                LCD_ShowString(0,  120, "R:",   BLACK, WHITE, 12, 1);
+                LCD_ShowString(65, 120, "cm/s", BLACK, WHITE, 12, 1);
+                sprintf(buf, "%5.1f", R_actual);
+                LCD_ShowString(20, 120, buf, RED, WHITE, 16, 1);
+
+                LCD_ShowString(0, 155, "K1: STOP", BLACK, WHITE, 12, 1);
+            } else {
+                LCD_ShowString(80, 40, "[ STOPPED ]", RED, WHITE, 12, 1);
+
+                LCD_ShowString(0, 100, "Press K1 to START", BLACK, WHITE, 16, 1);
+                LCD_ShowString(0, 130, "Motors will ramp to", BLACK, WHITE, 12, 1);
+                LCD_ShowString(0, 145, "100 cm/s with PID", BLACK, WHITE, 12, 1);
+
+                LCD_ShowString(0, 155, "K1: START", BLACK, WHITE, 12, 1);
+            }
+
+            LCD_ShowString(0, 180, "K2long: back to menu", BLACK, WHITE, 12, 1);
+        }
         break;
 
     /* ---- TASK 2 ---- */

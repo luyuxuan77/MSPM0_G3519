@@ -23,6 +23,8 @@ static uint32_t menu_tick = 0;
 float ypr[3];
 uint32_t adc0_data[4] = {0};
 uint32_t qei_cnt[2] = {0};
+extern uint8_t g_task1_active;
+extern uint8_t g_task1_running;
 
 /* ===== Self-test indicator (LED1+LED2 blink, buzzer) ===== */
 static void self_test(void)
@@ -85,22 +87,16 @@ int main(void)
     /* ===== 6. Main loop ===== */
     while (1)
     {
-        /* ---- IMU data every 20ms ---- */
-        if (system_time_elapsed_ms(&imu_tick, 20))
-		{
-            IMU_getYawPitchRoll(ypr);
-            Yaw   = ypr[0];
-            Pitch = ypr[1];
-            Roll  = ypr[2];
-        }
+        /* IMU read is done in TIMA1 ISR every 20ms — ypr[], Yaw/Pitch/Roll already updated */
 
-//		/* ---- Motor speed read every 128ms ---- */
-//		if (system_time_elapsed_ms(&speed_tick, 128))
-//		{
-//			float left_speed  = get_motor_speed_cm_s(0);
-//			float right_speed = get_motor_speed_cm_s(1);
-//			printf("L:%.1f R:%.1f cm/s\r\n", left_speed, right_speed);
-//		}
+		/* ---- TASK1 serial output: CSV telemetry every 100ms ---- */
+		if (g_task1_active && g_task1_running &&
+		    system_time_elapsed_ms(&speed_tick, 100))
+		{
+			float L_actual = get_motor_speed_cm_s(0);
+			float R_actual = get_motor_speed_cm_s(1);
+			printf("%lu,100.0,%.1f,%.1f\r\n", (unsigned long)nowtime, L_actual, R_actual);
+		}
 		
 				/* ---- Menu update every 200ms ---- */
 		if (system_time_elapsed_ms(&menu_tick, 50))
@@ -111,7 +107,12 @@ int main(void)
 		/* ---- Gray sensor data collection every 10ms ---- */
 		if (system_time_elapsed_ms(&gray, 10))
 		{
-			if (run_flag) {
+			if (g_task1_active && g_task1_running) {
+				/* TASK 1: PID speed test — both wheels at 40 cm/s */
+				float sp = cm_s_to_speed_counts(100.0f);
+				Speed_Pid[0].SetPoint = sp;
+				Speed_Pid[1].SetPoint = sp;
+			} else if (run_flag) {
 				Track_Direction_Control(g_track_speed_cm_s);
 			} else {
 				get_gray_refresh_data();
@@ -129,10 +130,10 @@ int main(void)
 //		}
 
         /* ---- Print IMU data every 500ms ---- */
-        if (system_time_elapsed_ms(&print_tick, 25))
-		{
-            printf("Y:%.1f P:%.1f R:%.1f\r\n", ypr[0], ypr[1], ypr[2]);
-        }
+//        if (system_time_elapsed_ms(&print_tick, 25))
+//		{
+//            printf("Y:%.1f P:%.1f R:%.1f\r\n", ypr[0], ypr[1], ypr[2]);
+//        }
 //			Track_Direction_Control(100) ;
 //            imu_data_t imu;
 //			IMU_getData(&imu);

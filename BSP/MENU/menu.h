@@ -20,6 +20,10 @@ extern int g_track_speed_cm_s;
 
 extern uint8_t g_show_gray_display;
 
+extern uint8_t g_task1_active;
+extern uint8_t g_task1_running;
+extern uint8_t run_flag;
+
 void menu_init(void);
 void menu_update(void);
 
