@@ -85,12 +85,14 @@ int main(void)
     /* ===== 6. Main loop ===== */
     while (1)
     {
-//        /* ---- 5.1 IMU data every 10ms ---- */
-//        if (system_time_elapsed_ms(&imu_tick, 10))
-//		{
-//            IMU_get();
-//			mode_switch();
-//        }
+        /* ---- IMU data every 20ms ---- */
+        if (system_time_elapsed_ms(&imu_tick, 20))
+		{
+            IMU_getYawPitchRoll(ypr);
+            Yaw   = ypr[0];
+            Pitch = ypr[1];
+            Roll  = ypr[2];
+        }
 
 //		/* ---- Motor speed read every 128ms ---- */
 //		if (system_time_elapsed_ms(&speed_tick, 128))

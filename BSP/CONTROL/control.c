@@ -151,3 +151,42 @@ int road_tell()
 
     return 0;
 }
+
+/* ===== Angle-based driving (IMU yaw feedback) ===== */
+extern volatile float Yaw;
+float g_angle_target_yaw = 0.0f;
+int   g_angle_drive_speed = 20;
+uint8_t g_angle_drive_enabled = 0;
+
+/*
+ * Drive straight at target_yaw heading.
+ * Call periodically (e.g. 10ms) in main loop.
+ * target_yaw: desired heading [0, 360) degrees
+ * speed_cm_s: base forward speed in cm/s
+ */
+void Drive_At_Angle(float target_yaw, int speed_cm_s)
+{
+    float error = target_yaw - Yaw;
+
+    /* Normalize to [-180, 180] */
+    if (error >  180.0f) error -= 360.0f;
+    if (error < -180.0f) error += 360.0f;
+
+    /* P-gain steering */
+    float steer = error * ANGLE_DRIVE_KP;
+    if (steer >  ANGLE_DRIVE_LIMIT) steer =  ANGLE_DRIVE_LIMIT;
+    if (steer < -ANGLE_DRIVE_LIMIT) steer = -ANGLE_DRIVE_LIMIT;
+
+    float base = cm_s_to_speed_counts((float)speed_cm_s);
+    Speed_Pid[0].SetPoint = base - steer;
+    Speed_Pid[1].SetPoint = base + steer;
+}
+
+/* Return signed yaw error in degrees (positive = turn right needed) */
+float Drive_Angle_Error(float target_yaw)
+{
+    float error = target_yaw - Yaw;
+    if (error >  180.0f) error -= 360.0f;
+    if (error < -180.0f) error += 360.0f;
+    return error;
+}

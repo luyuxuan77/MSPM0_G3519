@@ -2,6 +2,7 @@
 #include "MOTOR/motor.h"
 volatile uint32_t nowtime = 0U;
 extern float ypr[3];
+extern volatile float Yaw, Pitch, Roll;
 
 void system_time_init(void)
 {
@@ -73,6 +74,10 @@ void TimerA1_INST_IRQHandler(void)
 			if (++imu_20ms >= 20) {
 				imu_20ms = 0;
 				IMU_getYawPitchRoll(ypr);
+				/* Copy to globals for menu / Drive_At_Angle */
+				Yaw   = ypr[0];
+				Pitch = ypr[1];
+				Roll  = ypr[2];
 			}
 			break;
 		}

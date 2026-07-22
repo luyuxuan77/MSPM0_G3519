@@ -100,6 +100,7 @@ int get_gray_refresh_data(void)
 	if (gray_now_val[0] < g_gray_threshold[7]) { int d = g_gray_threshold[7] - gray_now_val[0]; total_darkness += d; weighted_sum += gray_weight[7] * d; offset_s |= 1 << 7; }
 
 	int goffset = (total_darkness > 0) ? (weighted_sum * GOFFSET_GAIN / total_darkness) : 0;
+	if (g_show_gray_display) {
 	// LCD: squares(y=8) + values(y=20), physical order [0][4][2][6]|[1][5][3][7]
 	// threshold=1000: below -> RED(detected), above -> BLACK
 	LCD_Fill(0,   8, 23, 17, (gray_now_val[7] < g_gray_threshold[0]) ? RED : BLACK);
@@ -119,6 +120,9 @@ int get_gray_refresh_data(void)
 	LCD_ShowIntNum(180,20, gray_now_val[2], 4, BLACK, WHITE, 12);
 	LCD_ShowIntNum(216,20, gray_now_val[4], 4, BLACK, WHITE, 12);
 	LCD_ShowIntNum(252,20, gray_now_val[0], 4, BLACK, WHITE, 12);
+	} else {
+	LCD_Fill(0, 8, 275, 32, WHITE);
+	}
 
 
 	return goffset;

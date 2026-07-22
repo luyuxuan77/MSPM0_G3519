@@ -16,6 +16,9 @@ extern int g_track_speed_cm_s;
 #define STATE_TASK2             4
 #define STATE_TASK3             5
 #define STATE_TASK4             6
+#define STATE_THRESHOLD_DISPLAY 7
+
+extern uint8_t g_show_gray_display;
 
 void menu_init(void);
 void menu_update(void);
