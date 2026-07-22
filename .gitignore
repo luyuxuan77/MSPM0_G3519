@@ -28,6 +28,9 @@ JLinkSettings.ini
 *.bak
 *.swp
 
+# Local machine-specific SysConfig path
+SysConfig/syscfg_root.txt
+
 # OS files
 Thumbs.db
 .DS_Store
