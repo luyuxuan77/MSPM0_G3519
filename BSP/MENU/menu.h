@@ -22,6 +22,8 @@ extern uint8_t g_show_gray_display;
 
 extern uint8_t g_task1_active;
 extern uint8_t g_task1_running;
+extern uint8_t g_task3_active;
+extern uint8_t g_task3_running;
 extern uint8_t run_flag;
 
 void menu_init(void);

@@ -78,36 +78,18 @@ void delay_us(uint32_t us)
 //    .stopBits = DL_UART_MAIN_STOP_BITS_ONE};
 void uart0_init(uint32_t baud)
 {
-
-//    /* 复位启动外设 */
-//    DL_UART_Main_reset(UART_0_INST);
-//    /* UART上电使能（UART0） */
-//    DL_UART_Main_enablePower(UART_0_INST);
-//    /* 配置UART0外设传输引脚引脚TX */
-//    DL_GPIO_initPeripheralOutputFunction(
-//        GPIO_UART_0_IOMUX_TX, GPIO_UART_0_IOMUX_TX_FUNC);
-//    /* 配置UART0外设输入引脚引脚RX */
-//    DL_GPIO_initPeripheralInputFunction(
-//        GPIO_UART_0_IOMUX_RX, GPIO_UART_0_IOMUX_RX_FUNC);
-//    /* 设置UART0时钟配置 */
-//    DL_UART_Main_setClockConfig(UART_0_INST, (DL_UART_Main_ClockConfig *)&gUART_0ClockConfig);
-//    /* 初始化UART0 */
-//    DL_UART_Main_init(UART_0_INST, (DL_UART_Main_Config *)&gUART_0Config);
-
-//    /*
-//     * Configure baud rate by setting oversampling and baud rate divisors.
-//     *  Target baud rate: 9600
-//     *  Actual baud rate: 9576.04
-//     */
-//    if (baud == 9600)
-//    {
-//        DL_UART_Main_setOversampling(UART_0_INST, DL_UART_OVERSAMPLING_RATE_16X);
-//        DL_UART_Main_setBaudRateDivisor(UART_0_INST, 260, 27);
-//    }
-
-//    /* Configure Interrupts */
-//    DL_UART_Main_enableInterrupt(UART_0_INST,
-//                                 DL_UART_MAIN_INTERRUPT_RX);
+    /*
+     * Reconfigure baud rate (SysConfig sets 115200 by default).
+     * Clock = BUSCLK 40MHz, 16x oversampling.
+     * Divisor = 40,000,000 / (16 * baud)
+     */
+    if (baud != 115200) {
+        DL_UART_Main_setOversampling(UART_0_INST, DL_UART_OVERSAMPLING_RATE_16X);
+        uint32_t divisor = 40000000U / (16U * baud);
+        uint32_t remainder = 40000000U % (16U * baud);
+        uint32_t frac = (remainder * 64U + (8U * baud)) / (16U * baud);
+        DL_UART_Main_setBaudRateDivisor(UART_0_INST, divisor, frac);
+    }
 
     DL_UART_Main_enable(UART_0_INST);
 

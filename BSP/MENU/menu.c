@@ -11,6 +11,8 @@ int      g_track_speed_cm_s    = 40;
 uint8_t  g_show_gray_display  = 0;
 uint8_t  g_task1_active       = 0;
 uint8_t  g_task1_running      = 0;
+uint8_t  g_task3_active       = 0;
+uint8_t  g_task3_running      = 0;
 
 extern volatile float Yaw, Pitch, Roll;
 
@@ -79,7 +81,15 @@ void menu_update(void)
             state = STATE_MAIN;
             break;
         case STATE_TASK2:
+            state = STATE_MAIN;
+            break;
         case STATE_TASK3:
+            g_task3_active = 0;
+            g_task3_running = 0;
+            Speed_Pid[0].SetPoint = 0;
+            Speed_Pid[1].SetPoint = 0;
+            state = STATE_MAIN;
+            break;
         case STATE_TASK4:
             state = STATE_MAIN;
             break;
@@ -95,7 +105,7 @@ void menu_update(void)
             if      (cursor == 0) { state = STATE_THRESHOLD_DISPLAY; cursor = 0; }
             else if (cursor == 1) { state = STATE_TASK1; g_task1_active = 1; g_task1_running = 0; }
             else if (cursor == 2) { state = STATE_TASK2; }
-            else if (cursor == 3) { state = STATE_TASK3; }
+            else if (cursor == 3) { state = STATE_TASK3; g_task3_active = 1; g_task3_running = 0; Odometry_Reset(); }
             else                  { state = STATE_TASK4; }
             break;
         case STATE_TASK1:
@@ -103,6 +113,21 @@ void menu_update(void)
             if (g_task1_running) {
                 motor_speed_pid_init();
             } else {
+                Speed_Pid[0].SetPoint = 0;
+                Speed_Pid[1].SetPoint = 0;
+            }
+            break;
+        case STATE_TASK2:
+            Odometry_Reset();
+            break;
+        case STATE_TASK3:
+            g_task3_running = !g_task3_running;
+            if (g_task3_running) {
+                /* Start: reset odometry and record initial heading */
+                Odometry_Reset();
+                motor_speed_pid_init();
+            } else {
+                /* Stop */
                 Speed_Pid[0].SetPoint = 0;
                 Speed_Pid[1].SetPoint = 0;
             }
@@ -153,8 +178,11 @@ void menu_update(void)
         _dr += (Roll  - _dr) * 0.3f;
 
         /* Only draw when formatted value actually changes */
-        sprintf(buf, "%5.1f", _dy);
-        if (strcmp(_sy, buf)) { LCD_ShowString(155,40,buf,RED,  WHITE,12,0); strcpy(_sy,buf); }
+        {
+            float ddy = _dy; if (ddy < 0) ddy += 360.0f;
+            sprintf(buf, "%5.1f", ddy);
+            if (strcmp(_sy, buf)) { LCD_ShowString(155,40,buf,RED,  WHITE,12,0); strcpy(_sy,buf); }
+        }
         sprintf(buf, "%5.1f", _dp);
         if (strcmp(_sp, buf)) { LCD_ShowString(155,55,buf,BLUE, WHITE,12,0); strcpy(_sp,buf); }
         sprintf(buf, "%5.1f", _dr);
@@ -193,6 +221,79 @@ void menu_update(void)
         }
     }
 
+    /* ===== Periodic TASK2 odometry refresh (200ms, change-only — no flicker) ===== */
+    if (state == STATE_TASK2 &&
+        system_time_get_tick_ms() - periodic_tick > 200) {
+        periodic_tick = system_time_get_tick_ms();
+        {
+            const Odometry_t* odo = Odometry_GetData();
+            static char _sx[10], _sy[10], _sh[8], _sd[8];
+            char buf[10];
+
+            sprintf(buf, "%+8.1f", odo->x);
+            if (strcmp(_sx, buf)) {
+                LCD_ShowString(20, 75, buf, RED, WHITE, 16, 0);
+                strcpy(_sx, buf);
+            }
+
+            sprintf(buf, "%+8.1f", odo->y);
+            if (strcmp(_sy, buf)) {
+                LCD_ShowString(20, 95, buf, RED, WHITE, 16, 0);
+                strcpy(_sy, buf);
+            }
+
+            {
+                float dy = odo->yaw_deg; if (dy < 0) dy += 360.0f;
+                sprintf(buf, "%6.1f", dy);
+                if (strcmp(_sh, buf)) {
+                    LCD_ShowString(40, 115, buf, BLUE, WHITE, 16, 0);
+                    strcpy(_sh, buf);
+                }
+            }
+
+            sprintf(buf, "%6.1f", odo->total_dist);
+            if (strcmp(_sd, buf)) {
+                LCD_ShowString(45, 135, buf, GREEN, WHITE, 16, 0);
+                strcpy(_sd, buf);
+            }
+        }
+    }
+
+    /* ===== Periodic TASK3 GO-100cm refresh (100ms, change-only) ===== */
+    if (state == STATE_TASK3 && g_task3_running &&
+        system_time_get_tick_ms() - periodic_tick > 100) {
+        periodic_tick = system_time_get_tick_ms();
+        {
+            const Odometry_t* odo = Odometry_GetData();
+            static char _sd[8], _sl[8], _sr[8];
+            char buf[8];
+
+            /* Distance — redraw only if changed */
+            sprintf(buf, "%5.1f", odo->total_dist);
+            if (strcmp(_sd, buf)) {
+                LCD_ShowString(45, 75, buf, RED, WHITE, 24, 0);
+                strcpy(_sd, buf);
+            }
+
+            /* Speed L */
+            float L = get_motor_speed_cm_s(0);
+            float R = get_motor_speed_cm_s(1);
+            sprintf(buf, "L:%.0f R:%.0f", L, R);
+            if (strcmp(_sl, buf)) {
+                LCD_ShowString(55, 135, buf, BLUE, WHITE, 16, 0);
+                strcpy(_sl, buf);
+            }
+
+            /* Auto-stop when reached 100cm */
+            if (odo->total_dist >= 100.0f) {
+                g_task3_running = 0;
+                Speed_Pid[0].SetPoint = 0;
+                Speed_Pid[1].SetPoint = 0;
+                dirty = 1; /* trigger full redraw to show [STOP] */
+            }
+        }
+    }
+
     /* ===== Draw (only when dirty) ===== */
     if (!dirty) return;
     dirty = 0;
@@ -207,7 +308,10 @@ void menu_update(void)
         {
             char buf[8];
             LCD_ShowString(140, 40, "Y:", BLACK, WHITE, 12, 1);
-            sprintf(buf, "%5.1f", Yaw);
+            {
+                float dy = Yaw; if (dy < 0) dy += 360.0f;
+                sprintf(buf, "%5.1f", dy);
+            }
             LCD_ShowString(155, 40, buf, RED, WHITE, 12, 1);
             LCD_ShowString(140, 55, "P:", BLACK, WHITE, 12, 1);
             sprintf(buf, "%5.1f", Pitch);
@@ -221,9 +325,9 @@ void menu_update(void)
         LCD_ShowString(10, 90,  (cursor==1)?">":" ", BLACK, WHITE, 16, 1);
         LCD_ShowString(30, 90,  "TASK 1", BLACK, WHITE, 16, 1);
         LCD_ShowString(10, 110, (cursor==2)?">":" ", BLACK, WHITE, 16, 1);
-        LCD_ShowString(30, 110, "TASK 2", BLACK, WHITE, 16, 1);
+        LCD_ShowString(30, 110, "ODOMETRY", BLACK, WHITE, 16, 1);
         LCD_ShowString(10, 130, (cursor==3)?">":" ", BLACK, WHITE, 16, 1);
-        LCD_ShowString(30, 130, "TASK 3", BLACK, WHITE, 16, 1);
+        LCD_ShowString(30, 130, "GO 100cm", BLACK, WHITE, 16, 1);
         LCD_ShowString(10, 150, (cursor==4)?">":" ", BLACK, WHITE, 16, 1);
         LCD_ShowString(30, 150, "TASK 4", BLACK, WHITE, 16, 1);
         LCD_ShowString(0, 180, "K1:enter", BLACK, WHITE, 12, 1);
@@ -311,18 +415,81 @@ void menu_update(void)
         }
         break;
 
-    /* ---- TASK 2 ---- */
+    /* ---- TASK 2: Odometry ---- */
     case STATE_TASK2:
-        LCD_ShowString(0, 50, "TASK 2", BLACK, WHITE, 24, 1);
-        LCD_ShowString(0, 95, "Coming soon...", BLACK, WHITE, 16, 1);
-        LCD_ShowString(0, 165, "K2long:back", BLACK, WHITE, 12, 1);
+        {
+            const Odometry_t* odo = Odometry_GetData();
+            char buf[16];
+
+            LCD_ShowString(0, 40, "ODOMETRY", BLACK, WHITE, 24, 1);
+
+            LCD_ShowString(0,  75, "X:",   BLACK, WHITE, 16, 1);
+            sprintf(buf, "%+8.1f", odo->x);
+            LCD_ShowString(20, 75, buf,    RED,   WHITE, 16, 0);
+            LCD_ShowString(130,75, "cm",   BLACK, WHITE, 12, 1);
+
+            LCD_ShowString(0,  95, "Y:",   BLACK, WHITE, 16, 1);
+            sprintf(buf, "%+8.1f", odo->y);
+            LCD_ShowString(20, 95, buf,    RED,   WHITE, 16, 0);
+            LCD_ShowString(130,95, "cm",   BLACK, WHITE, 12, 1);
+
+            LCD_ShowString(0, 115, "Yaw:", BLACK, WHITE, 16, 1);
+            {
+                float dy = odo->yaw_deg; if (dy < 0) dy += 360.0f;
+                sprintf(buf, "%6.1f", dy);
+            }
+            LCD_ShowString(40,115, buf,    BLUE,  WHITE, 16, 0);
+            LCD_ShowString(110,115,"deg",  BLACK, WHITE, 12, 1);
+
+            LCD_ShowString(0, 135, "Dist:",BLACK, WHITE, 16, 1);
+            sprintf(buf, "%6.1f", odo->total_dist);
+            LCD_ShowString(45,135, buf,    GREEN, WHITE, 16, 0);
+            LCD_ShowString(115,135,"cm",   BLACK, WHITE, 12, 1);
+
+            LCD_ShowString(0, 165, "K1:reset  K2long:back", BLACK, WHITE, 12, 1);
+        }
         break;
 
-    /* ---- TASK 3 ---- */
+    /* ---- TASK 3: GO 100cm straight ---- */
     case STATE_TASK3:
-        LCD_ShowString(0, 50, "TASK 3", BLACK, WHITE, 24, 1);
-        LCD_ShowString(0, 95, "Coming soon...", BLACK, WHITE, 16, 1);
-        LCD_ShowString(0, 165, "K2long:back", BLACK, WHITE, 12, 1);
+        {
+            const Odometry_t* odo = Odometry_GetData();
+            char buf[16];
+
+            LCD_ShowString(0, 40, "GO STRAIGHT 100cm", BLACK, WHITE, 20, 1);
+
+            if (g_task3_running) {
+                LCD_ShowString(100, 40, "[RUN]", GREEN, WHITE, 16, 1);
+
+                /* Distance progress */
+                LCD_ShowString(0,  75, "Dist:", BLACK, WHITE, 16, 1);
+                sprintf(buf, "%5.1f", odo->total_dist);
+                LCD_ShowString(45, 75, buf,    RED,   WHITE, 24, 0);
+                LCD_ShowString(120, 80, "cm",  BLACK, WHITE, 12, 1);
+
+                /* Target */
+                LCD_ShowString(0,  110, "Target: 100.0 cm", BLACK, WHITE, 16, 1);
+
+                /* Current speed */
+                float L = get_motor_speed_cm_s(0);
+                float R = get_motor_speed_cm_s(1);
+                LCD_ShowString(0,  135, "Speed:", BLACK, WHITE, 16, 1);
+                sprintf(buf, "L:%.0f R:%.0f", L, R);
+                LCD_ShowString(55, 135, buf, BLUE, WHITE, 16, 0);
+
+                LCD_ShowString(0, 165, "K1:STOP  K2long:back", BLACK, WHITE, 12, 1);
+            } else {
+                LCD_ShowString(100, 40, "[STOP]", RED, WHITE, 16, 1);
+
+                /* Last result */
+                LCD_ShowString(0,  75, "Last:", BLACK, WHITE, 16, 1);
+                sprintf(buf, "%5.1f cm", odo->total_dist);
+                LCD_ShowString(45, 75, buf,    RED,   WHITE, 24, 0);
+
+                LCD_ShowString(0, 110, "Target: 100.0 cm", BLACK, WHITE, 16, 1);
+                LCD_ShowString(0, 145, "K1:START  K2long:back", BLACK, WHITE, 12, 1);
+            }
+        }
         break;
 
     /* ---- TASK 4 ---- */

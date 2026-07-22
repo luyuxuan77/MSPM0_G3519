@@ -23,7 +23,7 @@ void Pid_Speed();
 #define WHEEL_DIAMETER_CM           6.5f
 #define ENCODER_PPR                 13.0f
 #define GEAR_RATIO                  30.0f
-#define QEI_RESOLUTION              4       // 4x quadrature counting
+#define QEI_RESOLUTION              4       // 4x quadrature (both edges of A+B)
 #define SPEED_PERIOD_SEC            0.128f
 #define WHEEL_CIRCUMFERENCE_CM       (3.1415926f * WHEEL_DIAMETER_CM)
 #define ENCODER_PULSES_PER_WHEEL_REV (ENCODER_PPR * GEAR_RATIO * QEI_RESOLUTION)

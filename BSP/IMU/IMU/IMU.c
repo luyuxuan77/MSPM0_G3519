@@ -432,8 +432,9 @@ static void imu_ahrs_update(float gx, float gy, float gz, float ax, float ay, fl
 
 //解决陀螺仪零漂相关
 static float gyro_bias[3]={0};
-#define GYRO_DEADZONE 0.05f
-#define GYRO_ALPHA 0.8f
+#define GYRO_DEADZONE 0.15f   /* ±0.15 dps deadzone (noise ~0.06dps RMS) */
+#define GYRO_ALPHA 0.92f       /* heavier low-pass for smoother gyro */
+#define GYRO_STATIONARY_THRESH 0.2f  /* tighter: all axes below this → freeze yaw */
 static float gyro_filter[3]={0};
 static uint8_t gyro_calibrated=0;
 void IMU_Gyro_Calibrate(void)
@@ -450,12 +451,26 @@ void IMU_Gyro_Calibrate(void)
             sum[1]+=values[4];
             sum[2]+=values[5];
         }
-        delay_ms(5);
+        delay_ms(20);  /* match IMU ODR 60Hz (~16.7ms), avoid empty reads */
     }
     gyro_bias[0]=sum[0]/500.0f;
     gyro_bias[1]=sum[1]/500.0f;
     gyro_bias[2]=sum[2]/500.0f;
+
+    /* 用校准值初始化在线零偏, 避免从0开始慢速收敛 */
+    gyro_offset[0] = gyro_bias[0];
+    gyro_offset[1] = gyro_bias[1];
+    gyro_offset[2] = gyro_bias[2];
+
     gyro_calibrated=1;
+
+    /* 重置 AHRS 状态, 清除校准期间积累的误差 */
+    imu_reset_runtime_state();
+    /* 恢复刚写入的 gyro_offset (imu_reset_runtime_state 会清零它) */
+    gyro_offset[0] = gyro_bias[0];
+    gyro_offset[1] = gyro_bias[1];
+    gyro_offset[2] = gyro_bias[2];
+
     printf("gyro bias:%f %f %f\r\n",
             gyro_bias[0],
             gyro_bias[1],
@@ -512,24 +527,24 @@ static bool imu_update_and_get_quaternion(float *q)
 	 * 陀螺仪处理
 	 ***************/
 	float gx,gy,gz;
-	gx = values[3];
+	gx = values[3];  /* values[3-5] already bias-corrected by gyro_offset */
 	gy = values[4];
 	gz = values[5];
-	//1. 去零偏
-	if(gyro_calibrated)
-	{
-		gx -= gyro_bias[0];
-		gy -= gyro_bias[1];
-		gz -= gyro_bias[2];
-	}
-	//2. 死区
+	//1. deadzone (bias removed by gyro_offset, initialized from calibration)
 	gx = gyro_deadzone(gx);
 	gy = gyro_deadzone(gy);
 	gz = gyro_deadzone(gz);
-	//3. 低通
+	//2. lowpass
 	gx = gyro_lowpass(gx,0);
 	gy = gyro_lowpass(gy,1);
 	gz = gyro_lowpass(gz,2);
+
+	//3. stationary freeze: all axes near zero -> car not rotating -> kill yaw drift
+	if (fabsf(gx) < GYRO_STATIONARY_THRESH &&
+	    fabsf(gy) < GYRO_STATIONARY_THRESH &&
+	    fabsf(gz) < GYRO_STATIONARY_THRESH) {
+		gz = 0.0f;  /* freeze yaw - no rotation, only noise left */
+	}
 
 	imu_ahrs_update(
 		gx * M_PI / 180.0f,
@@ -539,13 +554,6 @@ static bool imu_update_and_get_quaternion(float *q)
 		values[0]/1000.0f,
 		values[1]/1000.0f,
 		values[2]/1000.0f);
-    imu_ahrs_update(values[3] * M_PI / 180.0f,
-                    values[4] * M_PI / 180.0f,
-                    values[5] * M_PI / 180.0f,
-                    values[0] / 1000.0f,
-                    values[1] / 1000.0f,
-                    values[2] / 1000.0f);
-
     q[0] = q0;
     q[1] = q1;
     q[2] = q2;
