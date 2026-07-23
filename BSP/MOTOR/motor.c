@@ -462,7 +462,11 @@ void print_date()
  */
 void Pid_Speed()
 {
-	    set_motor_speed(  // 将PID计算结果写入PWM硬件
+    /* 电机未初始化完成前屏蔽输出, 防止上电时 ISR 写未就绪的硬件导致轮子抽动 */
+    if (!motor_pid_init_flag)
+        return;
+
+    set_motor_speed(  // 将PID计算结果写入PWM硬件
         pwm1,  // 左前轮 PWM [-800,+800]
         pwm2,  // 右前轮 PWM
         0,     // 左后轮 — 当前未使用
