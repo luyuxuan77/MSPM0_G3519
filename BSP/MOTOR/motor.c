@@ -185,15 +185,15 @@ void set_motor_speed(int m1, int m2, int M1, int M2)
 {
     if (m1 > 0)  // m1>0 → 正转: PH1高电平, 占空比=(1000-m1)/1000
         PH1(1), DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 1000-m1, DL_TIMER_CC_0_INDEX);  // PH1=高(正转), CC0通道
-	else if (m1 == 0)  // m1=0 → 刹车: PH1低电平, CCR=999(最大制动)
-		PH1(0), DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 999, DL_TIMER_CC_0_INDEX);  // PH1=低(刹车)
+	else if (m1 == 0)  // m1=0 → 停止: PH1低电平, CCR=1000(0%占空比)
+		PH1(0), DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 1000, DL_TIMER_CC_0_INDEX);  // PH1=低, 0%占空比
     else
         PH1(0), DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 1000+m1, DL_TIMER_CC_0_INDEX);  // m1<0 → 反转: PH1低, CCR=1000-|m1|
 
     if (m2 > 0)  // 右前轮正转 — 注意: 右轮PH逻辑与左轮相反 (机械安装方向)
         PH2(0), DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 1000-m2, DL_TIMER_CC_1_INDEX);  // PH2=低(正转), CC1通道
-	else if (m2 == 0)  // 右前轮刹车
-		PH2(0), DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 999, DL_TIMER_CC_1_INDEX);  // 刹车
+	else if (m2 == 0)  // 右前轮停止
+		PH2(0), DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 1000, DL_TIMER_CC_1_INDEX);  // 0%占空比
     else
         PH2(1), DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 1000+m2, DL_TIMER_CC_1_INDEX);  // m2<0 → 反转: PH2高, CC1通道
 
