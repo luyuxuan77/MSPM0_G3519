@@ -24,6 +24,8 @@ static uint32_t menu_tick = 0;
 static uint32_t odo_tick = 0;
 static uint32_t task1_start_ms = 0;   /* TASK1 auto-stop timer */
 static uint32_t imu_print_tick = 0;   /* IMU gyro VOFA output tick */
+static float pitch_offset = 0;        /* 上电后采样的 Pitch 零偏 */
+static float roll_offset  = 0;        /* 上电后采样的 Roll 零偏 */
 
 /* ---------- Global variables ---------- */
 float ypr[3];
@@ -108,6 +110,12 @@ int main(void)
     /* ===== 5. Self-test ===== */
     self_test();
 
+    /* ===== 5.5. 姿态角归零: 以当前 Pitch/Roll 为基准, 后续输出 = 原始 - 基准 ===== */
+    delay_ms(200);  /* 等 ISR 跑几轮, AHRS 收敛 */
+    pitch_offset = Pitch;
+    roll_offset  = Roll;
+    printf("[IMU] angle zero: pitch=%.1f roll=%.1f\r\n", pitch_offset, roll_offset);
+
     /* ===== 6. Main loop ===== */
     while (1)
     {
@@ -116,14 +124,14 @@ int main(void)
         /* ---- IMU gyro VOFA output every 50ms (20Hz) ---- */
         if (system_time_elapsed_ms(&imu_print_tick, 50))
         {
-            float gyro[7];
-            IMU_TT_getgyro(gyro);
+            float g[3];
+            IMU_getGyroProcessed(g);
             /* VOFA FireWater: comma-separated, \n terminated
-               ch1-3: raw gyro X/Y/Z (dps)
+               ch1-3: processed gyro X/Y/Z (dps, bias-corrected + deadzone + lowpass)
                ch4-6: yaw/pitch/roll attitude (deg) */
             printf("%.3f,%.3f,%.3f,%.1f,%.1f,%.1f\r\n",
-                   gyro[3], gyro[4], gyro[5],
-                   Yaw, Pitch, Roll);
+                   -g[0], -g[1], -g[2],
+                   -Yaw, -(Pitch - pitch_offset), -(Roll - roll_offset));
         }
 
         /* ---- TASK1 serial output: CSV telemetry every 100ms (disabled for VOFA) ---- */

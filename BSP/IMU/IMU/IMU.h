@@ -118,5 +118,8 @@ void IMU_getData(imu_data_t *data);
 
 void IMU_Gyro_Calibrate(void);
 
+/* 读取处理后的三轴角速度 (dps): 已完成减零偏→死区→低通→静止冻结,
+   供 VOFA 等上位机读取, 不触发 SPI 通信 */
+void IMU_getGyroProcessed(float g[3]);
 
 #endif

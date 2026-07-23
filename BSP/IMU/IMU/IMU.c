@@ -432,10 +432,11 @@ static void imu_ahrs_update(float gx, float gy, float gz, float ax, float ay, fl
 
 //解决陀螺仪零漂相关
 static float gyro_bias[3]={0};
-#define GYRO_DEADZONE 0.15f   /* ±0.15 dps deadzone (noise ~0.06dps RMS) */
+#define GYRO_DEADZONE 0.25f   /* ±0.25 dps deadzone, 滤除静止时陀螺仪底噪 */
 #define GYRO_ALPHA 0.92f       /* heavier low-pass for smoother gyro */
 #define GYRO_STATIONARY_THRESH 0.2f  /* tighter: all axes below this → freeze yaw */
 static float gyro_filter[3]={0};
+static float gyro_processed_dps[3]={0};  /* 处理后的角速度: 减零偏→死区→低通, 供VOFA读取 */
 static uint8_t gyro_calibrated=0;
 void IMU_Gyro_Calibrate(void)
 {
@@ -545,6 +546,11 @@ static bool imu_update_and_get_quaternion(float *q)
 	    fabsf(gz) < GYRO_STATIONARY_THRESH) {
 		gz = 0.0f;  /* freeze yaw - no rotation, only noise left */
 	}
+
+	/* 保存处理后的角速度: 减零偏→死区(±0.25dps)→低通→静止冻结, 供VOFA读取 */
+	gyro_processed_dps[0] = gx;
+	gyro_processed_dps[1] = gy;
+	gyro_processed_dps[2] = gz;
 
 	imu_ahrs_update(
 		gx * M_PI / 180.0f,
@@ -730,4 +736,21 @@ void IMU_getData(imu_data_t *data)
     data->yaw   = angles[0];
     data->pitch = angles[1] - IMU_PITCH_OFFSET;   // 软件归零
     data->roll  = angles[2] - IMU_ROLL_OFFSET;    // 软件归零
+}
+/*
+ * 读取处理后的三轴角速度 (dps)。
+ *
+ * 输出:
+ * - g[0..2]: 已完成 减零偏(gyro_offset) → 死区(±0.25dps) → 低通 → 静止冻结 的角速度
+ *
+ * 特点:
+ * - 不触发 SPI 通信, 仅返回上一次姿态解算时缓存的值
+ * - 适合 VOFA 等上位机高频读取, 与姿态解算ISR不会冲突
+ */
+void IMU_getGyroProcessed(float g[3])
+{
+    if (g == NULL) return;
+    g[0] = gyro_processed_dps[0];
+    g[1] = gyro_processed_dps[1];
+    g[2] = gyro_processed_dps[2];
 }
