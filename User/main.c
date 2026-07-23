@@ -126,14 +126,14 @@ int main(void)
                    Yaw, Pitch, Roll);
         }
 
-        /* ---- TASK1 serial output: CSV telemetry every 100ms ---- */
-        if (g_task1_active && g_task1_running &&
-            system_time_elapsed_ms(&speed_tick, 100))
-        {
-            float L_actual = get_motor_speed_cm_s(0);
-            float R_actual = get_motor_speed_cm_s(1);
-            printf("%lu,100.0,%.1f,%.1f\r\n", (unsigned long)nowtime, L_actual, R_actual);
-        }
+        /* ---- TASK1 serial output: CSV telemetry every 100ms (disabled for VOFA) ---- */
+//        if (g_task1_active && g_task1_running &&
+//            system_time_elapsed_ms(&speed_tick, 100))
+//        {
+//            float L_actual = get_motor_speed_cm_s(0);
+//            float R_actual = get_motor_speed_cm_s(1);
+//            printf("%lu,100.0,%.1f,%.1f\r\n", (unsigned long)nowtime, L_actual, R_actual);
+//        }
 
         /* ---- Menu update every 50ms ---- */
         if (system_time_elapsed_ms(&menu_tick, 50))
@@ -155,7 +155,7 @@ int main(void)
                     Speed_Pid[0].SetPoint = 0;
                     Speed_Pid[1].SetPoint = 0;
                     task1_start_ms = 0;
-                    printf("=== TASK1 DONE (3s auto-stop) ===\r\n");
+                    /* printf("=== TASK1 DONE (3s auto-stop) ===\r\n"); */
                 } else {
                     float sp = cm_s_to_speed_counts(40.0f);
                     Speed_Pid[0].SetPoint = sp;
@@ -240,47 +240,10 @@ int main(void)
             }
         }
 
-        /* ---- Serial debug every 100ms ---- */
+        /* ---- Serial debug every 100ms (disabled for VOFA) ---- */
         if (system_time_elapsed_ms(&print_tick, 100))
         {
-            const Odometry_t* odo = Odometry_GetData();
-
-            if (g_task3_active && g_task3_running) {
-                float L = get_motor_speed_cm_s(0);
-                float R = get_motor_speed_cm_s(1);
-                float yaw_err = g_task3_start_yaw - odo->yaw_deg;
-                if (yaw_err >  180.0f) yaw_err -= 360.0f;
-                if (yaw_err < -180.0f) yaw_err += 360.0f;
-                float dy = odo->yaw_deg; if (dy < 0) dy += 360.0f;
-                printf("T3|d=%.1f L=%.0f R=%.0f dLR=%.1f st=%.0f yaw=%.0f e=%.0f\r\n",
-                       odo->total_dist, L, R,
-                       g_task3_dist_L - g_task3_dist_R,
-                       g_task3_steer, dy, yaw_err);
-            } else {
-                float dy = odo->yaw_deg; if (dy < 0) dy += 360.0f;
-                printf("ODO| x=%.1f y=%.1f yaw=%.1f dist=%.1f\r\n",
-                       odo->x, odo->y, dy, odo->total_dist);
-            }
-
-            /* TASK3 completion report: detect running→stopped edge */
-            if (g_task3_was_running && !g_task3_running) {
-                printf("=== TASK3 DONE ===\r\n");
-                printf("  displayed: %.1f cm  (x=%.1f y=%.1f)\r\n",
-                       odo->total_dist, odo->x, odo->y);
-                printf("  L=%.1f R=%.1f  L-R=%.1f cm\r\n",
-                       g_task3_dist_L, g_task3_dist_R,
-                       g_task3_dist_L - g_task3_dist_R);
-                printf("  |y| = %.1f cm  (%s)\r\n",
-                       fabsf(odo->y),
-                       fabsf(odo->y) < 5.0f ? "STRAIGHT OK" : "CURVED");
-                printf("  --- CALIBRATION ---\r\n");
-                printf("  measure REAL distance with ruler!\r\n");
-                printf("  ratio = real / %.1f\r\n", odo->total_dist);
-                printf("  new D = 6.5 * ratio = %.2f cm\r\n",
-                       6.5f * (100.0f / odo->total_dist));
-                printf("  (update WHEEL_DIAMETER_CM in motor.h)\r\n");
-                printf("=================\r\n");
-            }
+            /* Track TASK3 stop edge for state only, no printf */
             g_task3_was_running = g_task3_running;
         }
 
