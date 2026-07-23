@@ -134,31 +134,36 @@ static uint8_t motor_pid_init_flag = 0;  // PID初始化完成标志: 0=跳过�
  */
 void motor_init(void)
 {
-    // [注释已恢复，见文件头部的完整说明]
-    DL_GPIO_initDigitalOutput(MOTOR_nsleep1_IOMUX);  // Step1: 初始化nSLEEP为数字输出 (唤醒DRV8870)
+    /* Step1: nSLEEP 初始化为输出并保持低电平 — 电机驱动芯片处于休眠, 禁止输出 */
+    DL_GPIO_initDigitalOutput(MOTOR_nsleep1_IOMUX);
     DL_GPIO_initDigitalOutput(MOTOR_nsleep2_IOMUX);
     DL_GPIO_initDigitalOutput(MOTOR_nsleep3_IOMUX);
     DL_GPIO_initDigitalOutput(MOTOR_nsleep4_IOMUX);
-    DL_GPIO_setPins(MOTOR_nsleep1_PORT, MOTOR_nsleep1_PIN);  // nSLEEP=高电平, 使能电机 (低电平=休眠)
-    DL_GPIO_setPins(MOTOR_nsleep2_PORT, MOTOR_nsleep2_PIN);
-    DL_GPIO_setPins(MOTOR_nsleep3_PORT, MOTOR_nsleep3_PIN);
-    DL_GPIO_setPins(MOTOR_nsleep4_PORT, MOTOR_nsleep4_PIN);
+    DL_GPIO_clearPins(MOTOR_nsleep1_PORT, MOTOR_nsleep1_PIN);
+    DL_GPIO_clearPins(MOTOR_nsleep2_PORT, MOTOR_nsleep2_PIN);
+    DL_GPIO_clearPins(MOTOR_nsleep3_PORT, MOTOR_nsleep3_PIN);
+    DL_GPIO_clearPins(MOTOR_nsleep4_PORT, MOTOR_nsleep4_PIN);
 
-    // [注释已恢复，见文件头部的完整说明]
-    DL_GPIO_clearPins(MOTOR_PH1_PORT, MOTOR_PH1_PIN);  // Step2: PH=0, 全刹车状态 (防止上电抖动)
+    /* Step2: PH=0, 方向引脚拉低 */
+    DL_GPIO_clearPins(MOTOR_PH1_PORT, MOTOR_PH1_PIN);
     DL_GPIO_clearPins(MOTOR_PH2_PORT, MOTOR_PH2_PIN);
     DL_GPIO_clearPins(MOTOR_PH3_PORT, MOTOR_PH3_PIN);
     DL_GPIO_clearPins(MOTOR_PH4_PORT, MOTOR_PH4_PIN);
 
-    // [注释已恢复，见文件头部的完整说明]
-    // [注释已恢复，见文件头部的完整说明]
-    DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 1000, DL_TIMER_CC_0_INDEX);  // Step3: CCR=1000→占空比0% (周期1000)
-    DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 1000, DL_TIMER_CC_1_INDEX);
-    DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 1000, DL_TIMER_CC_2_INDEX);
-    DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 1000, DL_TIMER_CC_3_INDEX);
+    /* Step3: CCR=999, 匹配 set_motor_speed 中的停止态 */
+    DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 999, DL_TIMER_CC_0_INDEX);
+    DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 999, DL_TIMER_CC_1_INDEX);
+    DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 999, DL_TIMER_CC_2_INDEX);
+    DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 999, DL_TIMER_CC_3_INDEX);
 
-    // [注释已恢复，见文件头部的完整说明]
-    DL_TimerG_startCounter(MOTOR_PWM_INST);  // Step4: 启动TIMG12计数器
+    /* Step4: 启动 PWM 计数器 (此时 nSLEEP 仍为低, 电机不会动) */
+    DL_TimerG_startCounter(MOTOR_PWM_INST);
+
+    /* Step5: 所有硬件就绪后, 才拉高 nSLEEP 唤醒电机驱动芯片 */
+    DL_GPIO_setPins(MOTOR_nsleep1_PORT, MOTOR_nsleep1_PIN);
+    DL_GPIO_setPins(MOTOR_nsleep2_PORT, MOTOR_nsleep2_PIN);
+    DL_GPIO_setPins(MOTOR_nsleep3_PORT, MOTOR_nsleep3_PIN);
+    DL_GPIO_setPins(MOTOR_nsleep4_PORT, MOTOR_nsleep4_PIN);
 }
 /* [注释已恢复，见文件头部的完整说明] */
 /* */
@@ -185,15 +190,15 @@ void set_motor_speed(int m1, int m2, int M1, int M2)
 {
     if (m1 > 0)  // m1>0 → 正转: PH1高电平, 占空比=(1000-m1)/1000
         PH1(1), DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 1000-m1, DL_TIMER_CC_0_INDEX);  // PH1=高(正转), CC0通道
-	else if (m1 == 0)  // m1=0 → 停止: PH1低电平, CCR=1000(0%占空比)
-		PH1(0), DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 1000, DL_TIMER_CC_0_INDEX);  // PH1=低, 0%占空比
+	else if (m1 == 0)  // m1=0 → 停止: PH1低电平, CCR=999
+		PH1(0), DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 999, DL_TIMER_CC_0_INDEX);  // PH1=低, CCR=999
     else
         PH1(0), DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 1000+m1, DL_TIMER_CC_0_INDEX);  // m1<0 → 反转: PH1低, CCR=1000-|m1|
 
     if (m2 > 0)  // 右前轮正转 — 注意: 右轮PH逻辑与左轮相反 (机械安装方向)
         PH2(0), DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 1000-m2, DL_TIMER_CC_1_INDEX);  // PH2=低(正转), CC1通道
 	else if (m2 == 0)  // 右前轮停止
-		PH2(0), DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 1000, DL_TIMER_CC_1_INDEX);  // 0%占空比
+		PH2(0), DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 999, DL_TIMER_CC_1_INDEX);  // CCR=999
     else
         PH2(1), DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 1000+m2, DL_TIMER_CC_1_INDEX);  // m2<0 → 反转: PH2高, CC1通道
 
