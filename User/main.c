@@ -22,6 +22,7 @@ static uint32_t gray = 0;
 static uint32_t speed_tick = 0;
 static uint32_t menu_tick = 0;
 static uint32_t odo_tick = 0;
+static uint32_t task1_start_ms = 0;   /* TASK1 auto-stop timer */
 
 /* ---------- Global variables ---------- */
 float ypr[3];
@@ -71,7 +72,7 @@ int main(void)
 
     /* ===== 2. IMU init (before timer ISR to avoid SPI contention) ===== */
     imu_app_init();
-    delay_ms(1000);
+    delay_ms(150);
 
     LCD_GPIO_Init();
     LCD_Init();
@@ -130,10 +131,22 @@ int main(void)
         if (system_time_elapsed_ms(&gray, 10))
         {
             if (g_task1_active && g_task1_running) {
-                /* TASK 1: PID speed test — both wheels at 100 cm/s */
-                float sp = cm_s_to_speed_counts(100.0f);
-                Speed_Pid[0].SetPoint = sp;
-                Speed_Pid[1].SetPoint = sp;
+                /* TASK 1: PID speed test — 40 cm/s for 3 seconds then auto-stop */
+                if (task1_start_ms == 0) {
+                    task1_start_ms = nowtime;  /* record start tick */
+                }
+                if (nowtime - task1_start_ms >= 3000) {
+                    /* 3 seconds elapsed — auto stop */
+                    g_task1_running = 0;
+                    Speed_Pid[0].SetPoint = 0;
+                    Speed_Pid[1].SetPoint = 0;
+                    task1_start_ms = 0;
+                    printf("=== TASK1 DONE (3s auto-stop) ===\r\n");
+                } else {
+                    float sp = cm_s_to_speed_counts(40.0f);
+                    Speed_Pid[0].SetPoint = sp;
+                    Speed_Pid[1].SetPoint = sp;
+                }
             } else if (g_task3_active && g_task3_running) {
                 /* TASK 3: yaw-locked PI + slow encoder I trim */
                 float sp3 = cm_s_to_speed_counts(40.0f);
@@ -166,10 +179,11 @@ int main(void)
             } else if (run_flag) {
                 Track_Direction_Control(g_track_speed_cm_s);
             } else {
-                /* Idle: stop motors, reset TASK3 state */
+                /* Idle: stop motors, reset task state */
                 g_task3_steer = 0;
                 g_task3_yaw_isum = 0;
                 g_task3_last_yaw_err = 0;
+                task1_start_ms = 0;   /* reset TASK1 auto-stop timer */
                 get_gray_refresh_data();
                 Speed_Pid[0].SetPoint = 0;
                 Speed_Pid[1].SetPoint = 0;

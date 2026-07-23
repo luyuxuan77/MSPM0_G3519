@@ -48,7 +48,7 @@
  * 
  * 方案: 用一个虚拟的 ramp_setpoint 替代真实 SetPoint, 每周期指数逼近:
  *       ramp += (target - ramp) * rate
- *       rate=0.25: ~9周期到90%目标, ~16周期到99%
+ *       rate=0.20: ~9周期到90%目标, ~16周期到99%
  * 
  * 锁定机制:
  *   - 启动后 ramp 从 0 开始逼近目标
@@ -185,8 +185,8 @@ void set_motor_speed(int m1, int m2, int M1, int M2)
 {
     if (m1 > 0)  // m1>0 → 正转: PH1高电平, 占空比=(1000-m1)/1000
         PH1(1), DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 1000-m1, DL_TIMER_CC_0_INDEX);  // PH1=高(正转), CC0通道
-	else if (m1 == 0)  // m1=0 → 刹车: PH3低电平, CCR=999(最大制动)
-		PH3(0), DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 999, DL_TIMER_CC_0_INDEX);  // PH3=低(刹车)
+	else if (m1 == 0)  // m1=0 → 刹车: PH1低电平, CCR=999(最大制动)
+		PH1(0), DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 999, DL_TIMER_CC_0_INDEX);  // PH1=低(刹车)
     else
         PH1(0), DL_TimerG_setCaptureCompareValue(MOTOR_PWM_INST, 1000+m1, DL_TIMER_CC_0_INDEX);  // m1<0 → 反转: PH1低, CCR=1000-|m1|
 
@@ -321,6 +321,10 @@ void motor_speed_pid_init(void)
 
 	ramp_active = 0;  // Step4: 重置斜坡 — 下次启动从0开始ramp
 	ramp_done = 0;     // 重置斜坡完成标志
+
+	/* 清零 PWM 输出, 防止 init 之后 Pid_Speed() 写入残留旧值导致启动踉跄 */
+	pwm1 = 0;
+	pwm2 = 0;
 }
 
 
@@ -329,18 +333,18 @@ void motor_speed_pid_init(void)
  * motor_control_update() — 速度 PID 主循环 (每控制周期调用)
  *
  * 流水线:
- *   编码器 → 差分测速 → 低通滤波(alpha=0.3) → 启动斜坡(rate=0.25)
+ *   编码器 → 差分测速 → 低通滤波(alpha=0.3) → 启动斜坡(rate=0.20)
  *   → 暂存 SetPoint → 替换为 ramp 值 → Pid_control(位置式) → 恢复 SetPoint
  *   → Pid_OutLimit(+-800) → 更新 pwm1/pwm2 → printf 调试输出
  *
  * 启动斜坡:
- *   ramp += (target - ramp) * 0.25, 从 0 指数逼近
+ *   ramp += (target - ramp) * 0.20, 从 0 指数逼近
  *   到达后 ramp_done=1 永久锁定, control.c 转向差速即时生效
  *
  * 调参入口:
  *   PID:      pid.c PID_Value_Speed[0]/[1]
  *   滤波:     alpha=0.3 (filtered = 0.3*raw + 0.7*prev)
- *   斜坡速率: rate=0.25
+ *   斜坡速率: rate=0.20
  *   PWM上限:  SPEED_PWM_MAX=800
  *
  * 输出:
@@ -374,18 +378,18 @@ void motor_control_update(void)
 	filtered_speed_M1 = 0.3f * speed_M1 + 0.7f * filtered_speed_M1;  // 左轮: 30%新值+70%旧值
 	filtered_speed_M2 = 0.3f * speed_M2 + 0.7f * filtered_speed_M2;  // 右轮
 
-	// [4/9] 启动斜坡: ramp从0指数逼近目标, 抑制冷启动尖峰 (rate=0.25)
+	// [4/9] 启动斜坡: ramp从0指数逼近目标, 抑制冷启动尖峰 (rate=0.20)
 	if (!ramp_done) {  // 斜坡未完成 → 用ramp值替代真实SetPoint
 	if (!ramp_active) {  // 首次进入 → 初始化ramp从0开始
 		ramp_setpoint_M1 = 0;  // 左轮ramp起始值为0
 		ramp_setpoint_M2 = 0;  // 右轮ramp起始值为0
 		ramp_active = 1;  // 标记斜坡已激活
 	}
-	ramp_setpoint_M1 += (Speed_Pid[0].SetPoint - ramp_setpoint_M1) * 0.50f;
-	ramp_setpoint_M2 += (Speed_Pid[1].SetPoint - ramp_setpoint_M2) * 0.50f;
+	ramp_setpoint_M1 += (Speed_Pid[0].SetPoint - ramp_setpoint_M1) * 0.20f;
+	ramp_setpoint_M2 += (Speed_Pid[1].SetPoint - ramp_setpoint_M2) * 0.20f;
 	if (Speed_Pid[0].SetPoint - ramp_setpoint_M1 < 0.5f) ramp_setpoint_M1 = Speed_Pid[0].SetPoint;
 	if (Speed_Pid[1].SetPoint - ramp_setpoint_M2 < 0.5f) ramp_setpoint_M2 = Speed_Pid[1].SetPoint;
-	if (ramp_setpoint_M1 > Speed_Pid[0].SetPoint - 1.0f && ramp_setpoint_M2 > Speed_Pid[1].SetPoint - 1.0f) ramp_done = 1;
+	if (ramp_setpoint_M1 >= Speed_Pid[0].SetPoint - 0.5f && ramp_setpoint_M2 >= Speed_Pid[1].SetPoint - 0.5f) ramp_done = 1;
 	}
 
 	// [5/9] 备份原始SetPoint (control.c 设置的转弯差速), 斜坡期间用ramp值替代
@@ -406,7 +410,7 @@ void motor_control_update(void)
 
 
 
-    // [8/9] 输出限幅: 将PID输出钳位到 ±SPEED_PWM_MAX(800)
+    // [8/9] 输出限幅: 将PID输出钳位到 ±SPEED_PWM_MAX(900)
 
     pwm1 = Pid_OutLimit(  // 左轮限幅
         &Speed_Pid[0],
@@ -415,7 +419,6 @@ void motor_control_update(void)
     pwm2 = Pid_OutLimit(  // 右轮限幅
         &Speed_Pid[1],
         SPEED_PWM_MAX);
-
 
 //	printf("%d,%d\r\n",
 //	pwm1,
