@@ -23,6 +23,7 @@ static uint32_t speed_tick = 0;
 static uint32_t menu_tick = 0;
 static uint32_t odo_tick = 0;
 static uint32_t task1_start_ms = 0;   /* TASK1 auto-stop timer */
+static uint32_t imu_print_tick = 0;   /* IMU gyro VOFA output tick */
 
 /* ---------- Global variables ---------- */
 float ypr[3];
@@ -111,6 +112,19 @@ int main(void)
     while (1)
     {
         /* IMU read is done in TIMA1 ISR every 20ms — Yaw/Pitch/Roll already updated */
+
+        /* ---- IMU gyro VOFA output every 50ms (20Hz) ---- */
+        if (system_time_elapsed_ms(&imu_print_tick, 50))
+        {
+            float gyro[7];
+            IMU_TT_getgyro(gyro);
+            /* VOFA FireWater: comma-separated, \n terminated
+               ch1-3: raw gyro X/Y/Z (dps)
+               ch4-6: yaw/pitch/roll attitude (deg) */
+            printf("%.3f,%.3f,%.3f,%.1f,%.1f,%.1f\r\n",
+                   gyro[3], gyro[4], gyro[5],
+                   Yaw, Pitch, Roll);
+        }
 
         /* ---- TASK1 serial output: CSV telemetry every 100ms ---- */
         if (g_task1_active && g_task1_running &&
