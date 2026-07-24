@@ -1,0 +1,199 @@
+================================================================================
+          MSPM0G3519 (LQFP-80) 工程引脚外设分配表
+          工程: CORE_TEST  |  CPU主频: 80 MHz
+================================================================================
+
+一、引脚使用总览
+----------------------------------------
+引脚     功能              外设/用途             说明
+----------------------------------------
+PA5      HFXIN             SYSCTL 外部晶振输入    40 MHz 外部高速晶振
+PA6      HFXOUT            SYSCTL 外部晶振输出    40 MHz 外部高速晶振
+PA8      UART1 TX          蓝牙 发送            波特率 115200
+PA9      UART1 RX          蓝牙 接收            波特率 115200
+PA10     UART0 TX          UART0 串口发送         波特率 115200
+PA11     UART0 RX          UART0 串口接收         波特率 115200
+PB10     UART4 TX          步进驱动 发送         波特率 115200
+PB18     UART4 RX          步进驱动 接收         波特率 115200
+PA14     GPIO 输出         LED1 (L1)             初始高电平，内部上拉
+PA15     ADC1 CH0          模拟输入 - ADC1通道0    灰度/模拟传感器（与DAC_OUT共享）
+PA16     ADC0 CH6          模拟输入 - ADC0通道6    灰度/模拟传感器
+PA17     GPIO 输出         LED2 (L2)             初始低电平，内部上拉
+PA19     SWDIO             DEBUGSS 调试接口       SWD 数据线
+PA20     SWCLK             DEBUGSS 调试接口       SWD 时钟线
+PA24     ADC0 CH3          模拟输入 - ADC通道3    灰度/模拟传感器
+PA25     ADC0 CH2          模拟输入 - ADC通道2    灰度/模拟传感器
+PA26     ADC0 CH1          模拟输入 - ADC通道1    灰度/模拟传感器
+PA27     ADC0 CH0          模拟输入 - ADC通道0    灰度/模拟传感器
+PA29     TIMG6 CCP0        PWM 输出 - RGB灯       TIMG6通道0，占空比50%
+PA30     TIMG6 CCP1        PWM 输出 - RGB灯       TIMG6通道1，占空比5%
+PB2      SPI0 PICO (MOSI)  SPI0 - OLED显示屏      20 Mbps, MOTO3 (CPOL=1,CPHA=1)
+PB3      SPI0 SCLK         SPI0 - OLED显示屏      时钟线
+PB11     TIMG0 CCP1        蜂鸣器 PWM 输出        TIMG0通道1
+PB12     GPIO 输出         IMU CS (片选)          内部上拉，低有效
+PB14     SPI1 POCI (MISO)  SPI1 - IMU(ICM45686)   200 kbps, MOTO3 (CPOL=1,CPHA=1)
+PB15     SPI1 PICO (MOSI)  SPI1 - IMU(ICM45686)   MOSI数据线
+PB16     SPI1 SCLK         SPI1 - IMU(ICM45686)   时钟线
+PB21     GPIO 输出         矩阵键盘 列3 (C3)      4×4矩阵键盘，推挽输出
+PB23     GPIO 输出         OLED RES (复位)        低有效复位
+PB24     ADC0 CH5          模拟输入 - ADC通道5    灰度/模拟传感器
+PB25     ADC0 CH4          模拟输入 - ADC通道4    灰度/模拟传感器
+PB31     GPIO 输入         用户按键               下降沿中断，内部上拉
+PA22     TIMG8 CCP1        Motor1 编码器 PHB      正交编码器，TIMG8通道1
+PA31     GPIO 输出         Motor0 方向 (PH)       高=正转，低=反转
+PB0      GPIO 输出         Motor1 方向 (PH)       高=正转，低=反转
+PB13     TIMG14 CCP1       Motor1 PWM 输出        TIMG14通道1
+PB28     TIMG14 CCP0       Motor0 PWM 输出        TIMG14通道0
+PB29     TIMG9 CCP0        Motor0 编码器 PHA      正交编码器，TIMG9通道0
+PB30     TIMG9 CCP1        Motor0 编码器 PHB      正交编码器，TIMG9通道1
+PC0      GPIO 输入         矩阵键盘 行1 (R1)      4×4矩阵键盘，内部上拉
+PC1      GPIO 输入         矩阵键盘 行2 (R2)      4×4矩阵键盘，内部上拉
+PC2      GPIO 输入         矩阵键盘 行3 (R3)      4×4矩阵键盘，内部上拉
+PC3      GPIO 输入         矩阵键盘 行4 (R4)      4×4矩阵键盘，内部上拉
+PC4      GPIO 输出         矩阵键盘 列1 (C1)      4×4矩阵键盘，推挽输出
+PC5      GPIO 输出         矩阵键盘 列2 (C2)      4×4矩阵键盘，推挽输出
+PC6      TIMG8 CCP0        Motor1 编码器 PHA      正交编码器，TIMG8通道0
+PC7      GPIO 输出         矩阵键盘 列4 (C4)      4×4矩阵键盘，推挽输出
+PC8      GPIO 输出         OLED DC (数据/命令)    区分命令和数据
+PC9      GPIO 输出         OLED CS (片选)         内部上拉，SPI0软件片选
+----------------------------------------
+
+二、按外设/模块分类
+----------------------------------------
+
+【1. 系统时钟 — SYSCTL】
+  PA5   → HFXIN  (40 MHz 外部高速晶振输入)
+  PA6   → HFXOUT (40 MHz 外部高速晶振输出)
+  说明: 经 SYSPLL 倍频，CPUCLK = 80 MHz
+
+【2. 调试接口 — DEBUGSS】
+  PA19  → SWDIO  (SWD 数据线)
+  PA20  → SWCLK  (SWD 时钟线)
+
+【3. UART0 — 串口通信】
+  PA10  → TX     (发送)
+  PA11  → RX     (接收)
+  参数: 波特率 115200, 8N1, 无流控
+
+【4. UART1 — 蓝牙】
+  PA8   → TX     (发送, Device Pin 22, PINCM19)
+  PA9   → RX     (接收, Device Pin 23, PINCM20)
+  参数: 波特率 115200, 8N1, 无流控
+
+【5. UART4 — 步进驱动】
+  PB10  → TX     (发送, Device Pin 34, PINCM27)
+  PB18  → RX     (接收, Device Pin 59, PINCM44)
+  参数: 波特率 115200, 8N1, 无流控
+
+【6. SPI0 — OLED 显示屏 (SPI_0)】
+  PB2   → PICO/MOSI  (主机输出，从机输入)
+  PB3   → SCLK       (SPI 时钟)
+  PC8   → DC         (数据/命令选择，GPIO软件控制)
+  PC9   → CS         (片选，GPIO软件控制)
+  PB23  → RES        (复位，GPIO控制)
+  参数: 20 Mbps, MOTO3 模式 (CPOL=1, CPHA=1), MSB First, 8-bit
+
+【7. SPI1 — IMU 惯性传感器 ICM45686 (SPI_1)】
+  PB14  → POCI/MISO  (主机输入，从机输出)
+  PB15  → PICO/MOSI  (主机输出，从机输入)
+  PB16  → SCLK       (SPI 时钟)
+  PB12  → CS_IMU     (片选，GPIO软件控制)
+  参数: 200 kbps, MOTO3 模式 (CPOL=1, CPHA=1), MSB First, 8-bit
+
+【8. TIMG0 PWM — 蜂鸣器】
+  PB11  → CCP1  (PWM输出, Device Pin 35, PINCM28)
+  说明: TIMG0 独立定时器，不与其他外设冲突
+
+【9. TIMG6 PWM — WS2812 RGB 灯】
+  PA29  → CCP0  (PWM通道0，占空比 50%)
+  PA30  → CCP1  (PWM通道1，占空比 5%)
+  参数: 总线时钟 80 MHz, 周期 100, 边沿对齐模式
+
+【10. TIMA1 — 软件定时器】
+  无外部引脚
+  参数: 100 µs 周期, 总线时钟 /8 /100 = 100 kHz
+
+【11. 4×4 矩阵键盘 — GPIO 扫描】
+  行线 (输入，内部上拉):
+    PC0  → R1  (Device Pin 46, PINCM74)
+    PC1  → R2  (Device Pin 47, PINCM75)
+    PC2  → R3  (Device Pin 50, PINCM76)
+    PC3  → R4  (Device Pin 51, PINCM77)
+  列线 (输出，推挽):
+    PC4  → C1  (Device Pin 52, PINCM78)
+    PC5  → C2  (Device Pin 53, PINCM79)
+    PB21 → C3  (Device Pin 68, PINCM49)
+    PC7  → C4  (Device Pin 64, PINCM85)
+  说明: PC0~PC5, PC7 在 GPIOC 端口，PB21 在 GPIOB 端口；
+        所有引脚均无 COMP 模拟功能，TIMx 复用仅作备选（默认 GPIO）
+
+【12. ADC0 — 模拟输入】
+  CH0 → PA27  (Device Pin 79, PINCM60)
+  CH1 → PA26  (Device Pin 78, PINCM59)
+  CH2 → PA25  (Device Pin 74, PINCM55)
+  CH3 → PA24  (Device Pin 73, PINCM54)
+  CH4 → PB25  (Device Pin 75, PINCM56)
+  CH5 → PB24  (Device Pin 71, PINCM52)
+  CH6 → PA16  (Device Pin 48, PINCM38)
+  说明: 7 路 ADC0 输入，用于灰度传感器或其他模拟信号采集
+
+【13. ADC1 — 模拟输入】
+  CH0 → PA15  (Device Pin 44, PINCM37)
+  说明: 1 路 ADC1 输入；PA15 与 DAC_OUT 共享引脚，使用 ADC 时不可同时使用 DAC
+
+【14. 电机 PWM 与编码器】
+  TIMG14 (MOTOR_PWM): 40 MHz, 四路 PWM
+    CC0 → PB28  Motor0 PWM  (Device Pin 24, PINCM65)
+    CC1 → PB13  Motor1 PWM  (Device Pin 37, PINCM30)
+  TIMG9 (QEI_M0): Motor0 编码器
+    PHA → PB29  (Device Pin 25, PINCM66)
+    PHB → PB30  (Device Pin 26, PINCM67)
+  TIMG8 (QEI_M1): Motor1 编码器
+    PHA → PC6   (Device Pin 63, PINCM84)
+    PHB → PA22  (Device Pin 62, PINCM47)
+  方向控制 (GPIO):
+    PA31 → Motor0 PH  (Device Pin  7, PINCM 6)
+    PB0  → Motor1 PH  (Device Pin 15, PINCM12)
+  说明: 与 TIMG6 RGB 灯使用不同定时器，无冲突
+
+【15. GPIO — 独立控制引脚】
+  PA14  → LED1 (L1), 输出, 初始高电平, 内部上拉
+  PA17  → LED2 (L2), 输出, 初始低电平, 内部上拉
+  PB31  → 用户按键, 输入, 下降沿中断, 内部上拉
+
+三、按外设统计
+----------------------------------------
+外设                 引脚数    引脚列表
+SYSCTL (HFXT)           2      PA5, PA6
+DEBUGSS (SWD)           2      PA19, PA20
+UART0                   2      PA10(TX), PA11(RX)
+蓝牙 (UART1)            2      PA8(TX), PA9(RX)
+步进驱动 (UART4)         2      PB10(TX), PB18(RX)
+SPI0 (OLED)             5      PB2(PICO), PB3(SCLK), PC8(DC), PC9(CS), PB23(RES)
+SPI1 (IMU)              4      PB14(POCI), PB15(PICO), PB16(SCLK), PB12(CS)
+TIMG0 PWM (蜂鸣器)      1      PB11(CCP1)
+TIMG6 PWM (RGB灯)       2      PA29(CCP0), PA30(CCP1)
+TIMA1 (系统节拍)        0      无外部引脚
+ADC0                    7      PA27(CH0), PA26(CH1), PA25(CH2), PA24(CH3), PB25(CH4), PB24(CH5), PA16(CH6)
+ADC1                    1      PA15(CH0)
+矩阵键盘 (4×4)          8      PC0~PC3(行), PC4/PC5/PB21/PC7(列)
+电机 PWM+编码器          8      PB28/PB13(PWM), PB29/PB30/PC6/PA22(编码器), PA31/PB0(方向)
+独立GPIO                3      PA14(LED1), PA17(LED2), PB31(KEY)
+----------------------------------------
+总计                   49 个引脚
+
+四、按端口统计
+----------------------------------------
+GPIOA    20    PA5, PA6, PA8, PA9, PA10, PA11, PA14, PA15,
+               PA16, PA17, PA19, PA20, PA22, PA24, PA25,
+               PA26, PA27, PA29, PA30, PA31
+GPIOB    19    PB0, PB2, PB3, PB10, PB11, PB12, PB13, PB14,
+               PB15, PB16, PB18, PB21, PB23, PB24, PB25,
+               PB28, PB29, PB30, PB31
+GPIOC    10    PC0, PC1, PC2, PC3, PC4, PC5, PC6, PC7, PC8, PC9
+----------------------------------------
+总计      44 个引脚
+
+================================================================================
+                        文件生成日期: 2026-07-23
+================================================================================

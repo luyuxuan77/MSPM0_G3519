@@ -1,0 +1,18 @@
+# Build outputs
+Output/
+
+# Keil user-specific files
+Project/*.uvguix.*
+Project/JLinkLog.txt
+Project/JLinkSettings.ini
+
+# Editor
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+Desktop.ini
