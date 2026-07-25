@@ -84,6 +84,15 @@ static void menu_enter(menu_mgr_t *m)
         OLED_Clear();
         OLED_ShowString(0, 2, (u8 *)"Running...");
         item->action();
+
+        /*
+         * 动作函数内部会高频调用 keypad_scan() 检测 * 退出。
+         * 返回后可能仍有按键抖动/回弹残留在键盘中断锁存器中。
+         * 延时消抖 + 清空缓冲区，避免残留按键被 menu_task 误读为菜单跳转。
+         */
+        delay_ms(30);
+        while (keypad_scan() != KEYPAD_KEY_NONE) {}
+
         menu_redraw(m);
         return;
     }
@@ -100,6 +109,10 @@ static void menu_enter(menu_mgr_t *m)
         m->scroll = 0;
         menu_adjust_scroll(m);
         menu_redraw(m);
+
+        /* 进入子菜单后同样清空残留按键 */
+        delay_ms(30);
+        while (keypad_scan() != KEYPAD_KEY_NONE) {}
     }
 }
 
@@ -114,6 +127,10 @@ static void menu_back(menu_mgr_t *m)
     m->scroll = m->stack_scroll[m->depth];
     menu_adjust_scroll(m);
     menu_redraw(m);
+
+    /* 清空 * 键释放时可能残留的抖动按键 */
+    delay_ms(30);
+    while (keypad_scan() != KEYPAD_KEY_NONE) {}
 }
 
 /* ── 按键分发 ── */
@@ -127,10 +144,6 @@ static void menu_handle_key(menu_mgr_t *m, uint8_t key)
     case '#': menu_enter(m); return;
     case '*': menu_back(m);  return;
     default:
-        if (key >= '1' && key <= '9') {
-            uint8_t idx = key - '1';
-            if (idx < m->count) { m->cursor = idx; menu_enter(m); return; }
-        }
         return;
     }
 

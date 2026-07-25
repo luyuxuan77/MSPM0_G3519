@@ -24,6 +24,7 @@ void OLED_Clear(void);
 void OLED_ShowChar(u8 x, u8 y, u8 chr);
 void OLED_ShowNum(u8 x, u8 y, u32 num, u8 len, u8 size2);
 void OLED_ShowString(u8 x, u8 y, u8 *p);
+void OLED_ShowString_Small(u8 x, u8 y, u8 *p);
 void OLED_Set_Pos(unsigned char x, unsigned char y);
 
 #endif

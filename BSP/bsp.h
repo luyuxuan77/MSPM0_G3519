@@ -8,6 +8,8 @@
 #include "bsp_common.h"
 #include "LED/led.h"
 #include "UART0/uart0.h"
+#include "UART1/uart1.h"
+#include "UART4/uart4.h"
 #include "TimerG6_PWM_RGB/timerG6_pwm_rgb.h"
 #include "KEY/key.h"
 #include "SPI0_OLED/spi0_oled.h"
@@ -15,5 +17,7 @@
 #include "QEI/qei.h"
 #include "KEY/keypad.h"
 #include "ADC/adc.h"
+#include "PID/pid.h"
+#include "MOTOR/motor.h"
 
 #endif

@@ -400,6 +400,16 @@
               <FilePath>..\BSP\UART0\uart0.c</FilePath>
             </File>
             <File>
+              <FileName>uart1.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\UART1\uart1.c</FilePath>
+            </File>
+            <File>
+              <FileName>uart4.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\UART4\uart4.c</FilePath>
+            </File>
+            <File>
               <FileName>led.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\\BSP\\LED\\led.c</FilePath>
@@ -438,6 +448,36 @@
               <FileName>qei.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\BSP\QEI\qei.c</FilePath>
+            </File>
+            <File>
+              <FileName>pid.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\PID\pid.c</FilePath>
+            </File>
+            <File>
+              <FileName>motor.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\MOTOR\motor.c</FilePath>
+            </File>
+            <File>
+              <FileName>motor.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\BSP\MOTOR\motor.h</FilePath>
+            </File>
+            <File>
+              <FileName>pid.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\BSP\PID\pid.h</FilePath>
+            </File>
+            <File>
+              <FileName>menu_actions.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\menu_actions.c</FilePath>
+            </File>
+            <File>
+              <FileName>menu_actions.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\BSP\menu_actions.h</FilePath>
             </File>
           </Files>
         </Group>
