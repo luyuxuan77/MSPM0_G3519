@@ -122,13 +122,11 @@ void act_m1fwd(void) { motor_test_run(1, "M1 Forward",  200); }
 void act_m1rev(void) { motor_test_run(1, "M1 Reverse", -200); }
 
 /* ================================================================
- *  ADC Monitor (6x8 small font, 7 channels in 3-row grid)
+ *  ADC Monitor (6x8 small font, 8 channels in 3-row grid)
  * ================================================================ */
 void act_adc_monitor(void)
 {
     OLED_Clear();
-
-    /* title: small font 1-page row */
     OLED_ShowString_Small(0, 0, (u8 *)"ADC Monitor  *exit");
 
     uint32_t t = sys_tick_ms();
@@ -136,26 +134,21 @@ void act_adc_monitor(void)
         if (keypad_scan() == '*') return;
         if (!sys_elapsed_ms(&t, 200)) continue;
 
-        uint16_t ch0 = adc0_read_channel(0);
-        uint16_t ch1 = adc0_read_channel(1);
-        uint16_t ch2 = adc0_read_channel(2);
-        uint16_t ch3 = adc0_read_channel(3);
-        uint16_t ch4 = adc0_read_channel(4);
-        uint16_t ch5 = adc0_read_channel(5);
-        uint16_t ch6 = adc0_read_channel(6);
+        /* 一次采样8路, 存 g_adc_raw[0..7] */
+        adc_sample_all();
 
         char b[32];
 
-        /* Row 1 (y=2): CH0~CH2  (6+4+1+6+4+1+6+4 = 32 chars * 6 = 120 px < 128) */
-        sprintf(b, "0:%4u 1:%4u 2:%4u", ch0, ch1, ch2);
+        /* Row 1 (y=2): CH0~CH2 */
+        sprintf(b, "0:%4u 1:%4u 2:%4u", g_adc_raw[0], g_adc_raw[1], g_adc_raw[2]);
         OLED_ShowString_Small(0, 2, (u8 *)b);
 
         /* Row 2 (y=4): CH3~CH5 */
-        sprintf(b, "3:%4u 4:%4u 5:%4u", ch3, ch4, ch5);
+        sprintf(b, "3:%4u 4:%4u 5:%4u", g_adc_raw[3], g_adc_raw[4], g_adc_raw[5]);
         OLED_ShowString_Small(0, 4, (u8 *)b);
 
-        /* Row 3 (y=6): CH6 对齐 */
-        sprintf(b, "     6:%4u", ch6);
+        /* Row 3 (y=6): CH6~CH7 */
+        sprintf(b, "6:%4u 7:%4u", g_adc_raw[6], g_adc_raw[7]);
         OLED_ShowString_Small(0, 6, (u8 *)b);
     }
 }
