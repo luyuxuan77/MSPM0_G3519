@@ -141,18 +141,34 @@ static const int8_t probe_weight[8] = {
     -20    /* 探头8: 最右侧 */
 };
 
+/* 圆弧循迹权重: 中间加强, 外侧适度 */
+static const int8_t probe_weight_arc[8] = {
+     0,   /* 探头1: 最左侧 */
+     21,   /* 探头2: 左中外 */
+     20,   /* 探头3: 左中内 */
+      8,   /* 探头4: 中心偏左 */
+     -8,   /* 探头5: 中心偏右 */
+    -20,   /* 探头6: 右中内 */
+    -21,   /* 探头7: 右中外 */
+    -0    /* 探头8: 最右侧 */
+};
+
+uint8_t g_arc_mode = 0;  /* 0=直线循迹 1=圆弧循迹, task2设置 */
+
 /*
  * get_gray_refresh_data()
  *
  * 使用 gw_digital (Digtal) 判断压线 + gw_normalize (Normalize) 计算暗度质心。
  * I2C 数据由 gw_i2c_read_task() 在后台更新。
- * GW 传感器自带 LED 指示压线状态，LCD 不再显示灰度数据。
+ * g_arc_mode=1 时使用圆弧权重数组。
  *
  * Returns: goffset — 加权暗心偏差 (负=偏左需右转, 正=偏右需左转)
  */
 int get_gray_refresh_data(void)
 {
 #define GOFFSET_GAIN 3   /* 转向灵敏度, 越大越激进 */
+
+    const int8_t *pw = g_arc_mode ? probe_weight_arc : probe_weight;
 
     offset_s = 0;
     int total_darkness = 0;
@@ -167,7 +183,7 @@ int get_gray_refresh_data(void)
             if (darkness < 0) darkness = 0;
 
             total_darkness += darkness;
-            weighted_sum  += probe_weight[i] * darkness;
+            weighted_sum  += pw[i] * darkness;
             offset_s      |= (1 << i);
         }
     }

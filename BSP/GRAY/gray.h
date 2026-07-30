@@ -10,6 +10,8 @@ int get_gray_refresh_data(void);
 
 uint8_t get_offset_s(void);
 
+extern uint8_t g_arc_mode;  /* 0=直线循迹 1=圆弧循迹 */
+
 /* ADC read VCC voltage at XT30 connector (still uses ADC0, independent of I2C) */
 uint16_t get_adc0_value(void);
 

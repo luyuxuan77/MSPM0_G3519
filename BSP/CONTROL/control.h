@@ -11,6 +11,11 @@ extern PID_TypeDef Yaw_Pid;
 extern p_i_d_Value_TypeDef PID_Value_Yaw;
 
 
+#define TRACK_KP              2.5f
+#define TRACK_STEER_LIMIT     145.0f
+
+extern int gw_offset;
+
 void Track_Direction_Control(int speed);
 int Track_Direction_Control_LEFT(float speed);
 int Track_Direction_Control_RIGHT(float speed);	

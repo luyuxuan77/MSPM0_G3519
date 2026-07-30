@@ -23,7 +23,7 @@
 #define TRACK_D_LPF           0.15f
 #define TRACK_STEER_LIMIT     145.0f
 #define TRACK_STEER_SLEW_STEP 14.0f  /* 转向变化率限制 */
-#define TRACK_FWD_SLEW_STEP   3.6f   /* 前进速度变化率限制, 起步平缓 */
+#define TRACK_FWD_SLEW_STEP   3.78f   /* 前进速度变化率限制, 起步平缓 */
 #define TRACK_LOST_HOLD      1       /* 1=丢线保持上次转向 0=丢线走直线 */
 
 /* 兼容旧宏名(下方若有引用) */
