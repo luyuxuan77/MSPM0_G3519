@@ -1,0 +1,33 @@
+# Keil MDK build output
+Output/
+
+# Keil user-specific files
+*.uvguix.*
+*.uvgui.*
+*.scvd
+JLinkLog.txt
+JLinkSettings.ini
+
+# Object and listing files
+*.o
+*.d
+*.crf
+*.axf
+*.hex
+*.bin
+*.htm
+*.lnp
+*.lst
+*.map
+*.sct
+*.dep
+*.elf
+
+# Editor backup files
+*~
+*.bak
+*.swp
+
+# OS files
+Thumbs.db
+.DS_Store

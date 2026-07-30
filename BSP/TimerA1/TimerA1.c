@@ -1,0 +1,105 @@
+#include "bsp.h"
+#include "MOTOR/motor.h"
+volatile uint32_t nowtime = 0U;
+volatile uint8_t g_i2c_read_flag = 0;  /* ISR sets every 10ms → main loop reads I2C sensor */
+extern float ypr[3];
+extern volatile float Yaw, Pitch, Roll;
+
+void system_time_init(void)
+{
+    nowtime = 0U;
+    DL_TimerA_clearInterruptStatus(TimerA1_INST, DL_TIMERA_INTERRUPT_LOAD_EVENT);
+    DL_TimerA_enableInterrupt(TimerA1_INST, DL_TIMERA_INTERRUPT_LOAD_EVENT);
+    NVIC_ClearPendingIRQ(TimerA1_INST_INT_IRQN);
+    NVIC_EnableIRQ(TimerA1_INST_INT_IRQN);
+    DL_TimerA_startCounter(TimerA1_INST);
+}
+
+uint32_t system_time_get_tick_ms(void)
+{
+    return nowtime;
+}
+
+bool system_time_wait_for_tick(uint32_t timeout_loop_count)
+{
+    uint32_t start_tick = nowtime;
+
+    while (timeout_loop_count > 0U) {
+        if (nowtime != start_tick) {
+            return true;
+        }
+        timeout_loop_count--;
+    }
+
+    return false;
+}
+
+bool system_time_elapsed_ms(uint32_t *last_tick_ms, uint32_t interval_ms)
+{
+    uint32_t current_ms;
+
+    if (last_tick_ms == NULL) {
+        return false;
+    }
+
+    current_ms = system_time_get_tick_ms();
+    if (interval_ms == 0U) {
+        *last_tick_ms = current_ms;
+        return true;
+    }
+
+    if ((uint32_t) (current_ms - *last_tick_ms) >= interval_ms) {
+        *last_tick_ms = current_ms;
+        return true;
+    }
+
+    return false;
+}
+
+void TimerA1_INST_IRQHandler(void)
+{
+
+	switch( DL_TimerA_getPendingInterrupt(TimerA1_INST))
+	{
+		case DL_TIMERA_IIDX_LOAD: {
+			static uint8_t pid_10ms = 0, motor_128ms = 0, imu_20ms = 0, i2c_10ms = 0;
+			nowtime++;
+			key_tick_1ms();
+
+			/* ---- I2C sensor read trigger: every 10ms ---- */
+			if (++i2c_10ms >= 10) {
+				i2c_10ms = 0;
+				g_i2c_read_flag = 1;
+			}
+			if (++pid_10ms >= 10) {
+				pid_10ms = 0;
+				Pid_Speed();
+			}
+			if (++motor_128ms >= 32) {   /* 128→32: 速度内环提速4倍(31Hz), 缩短HOLD回正盲区 */
+				motor_128ms = 0;
+				motor_control_update();
+			}
+			if (++imu_20ms >= 20) {
+				imu_20ms = 0;
+				IMU_getYawPitchRoll(ypr);
+				/* Copy to globals for menu / Drive_At_Angle */
+				Yaw   = ypr[0];
+				Pitch = ypr[1];
+				Roll  = ypr[2];
+			}
+			break;
+		}
+		default:
+			break;
+	}
+}
+
+void TimerA1_init(void)
+{
+
+	NVIC_ClearPendingIRQ(TimerA1_INST_INT_IRQN);
+	NVIC_EnableIRQ(TimerA1_INST_INT_IRQN);
+}
+
+
+
